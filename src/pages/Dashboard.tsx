@@ -16,24 +16,58 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { X1ChallengeDialog } from "@/components/X1ChallengeDialog";
+import { useAuth } from "@/../../backend/src/context/AuthContext";
+import { getProfile } from "@/services/profileService";
+
+interface UserProfile {
+  id: string;
+  display_name: string;
+  avatar_url?: string;
+  email: string;
+}
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [invitesCount] = useState(3); // Mock count
-  const [isAuthenticated] = useState(true); // Mock auth state
+  const { user } = useAuth();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [invitesCount] = useState(0);
   const [x1ChallengeOpen, setX1ChallengeOpen] = useState(false);
-  
-  const mockUser = {
-    name: "João Silva",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=JoaoSilva",
-  };
+  const [loading, setLoading] = useState(true);
 
-  const handleLogout = () => {
-    console.log("Logout");
-    // TODO: Implement logout logic
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const profile = await getProfile(user.id);
+        if (profile) {
+          setUserProfile({
+            id: profile.id,
+            display_name: profile.display_name || profile.full_name || "Usuário",
+            avatar_url: profile.avatar_url,
+            email: profile.email,
+          });
+        }
+      } catch (err) {
+        console.error("Erro ao buscar perfil do usuário:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
+
+  const handleLogout = async () => {
+    try {
+      // TODO: Implement logout logic with Supabase
+      navigate("/");
+    } catch (err) {
+      console.error("Erro ao fazer logout:", err);
+    }
   };
 
   const handleCreateTournament = () => {
@@ -44,21 +78,29 @@ const Dashboard = () => {
     setX1ChallengeOpen(true);
   };
 
+  const isAuthenticated = !!user;
+
+  if (loading && isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div>Carregando...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <Navbar isAuthenticated={isAuthenticated} />
       
       <main className="container mx-auto px-4 pt-24 pb-12">
-        {/* Header with Profile and Notifications - Only when authenticated */}
         <div className="flex items-center justify-between mb-8 animate-slide-up">
           <div>
             <h1 className="text-4xl font-bold mb-2">Campeonatos</h1>
             <p className="text-muted-foreground">Gerencie seus torneios e participe de novos campeonatos</p>
           </div>
 
-          {isAuthenticated && (
+          {isAuthenticated && userProfile && (
             <div className="flex items-center gap-3">
-              {/* Notifications */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="icon" className="relative">
@@ -77,31 +119,25 @@ const Dashboard = () => {
                   </div>
                   <DropdownMenuSeparator />
                   <div className="max-h-96 overflow-y-auto">
-                    <DropdownMenuItem className="flex flex-col items-start p-3 cursor-pointer">
-                      <p className="font-medium">Convite para Campeonato FIFA</p>
-                      <p className="text-xs text-muted-foreground">Carlos Silva te convidou</p>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="flex flex-col items-start p-3 cursor-pointer">
-                      <p className="font-medium">Solicitação de Amizade</p>
-                      <p className="text-xs text-muted-foreground">Maria Santos quer ser sua amiga</p>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="flex flex-col items-start p-3 cursor-pointer">
-                      <p className="font-medium">Convite CS2 Tournament</p>
-                      <p className="text-xs text-muted-foreground">Pedro Costa te convidou</p>
-                    </DropdownMenuItem>
+                    {invitesCount === 0 ? (
+                      <div className="p-4 text-center text-muted-foreground">
+                        Nenhum convite no momento
+                      </div>
+                    ) : (
+                      <div>Convites aqui</div>
+                    )}
                   </div>
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Profile Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 h-auto py-2 px-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={mockUser.avatar} alt={mockUser.name} />
-                      <AvatarFallback>{mockUser.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      <AvatarImage src={userProfile.avatar_url} alt={userProfile.display_name} />
+                      <AvatarFallback>{userProfile.display_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
-                    <span className="hidden md:inline font-medium">{mockUser.name}</span>
+                    <span className="hidden md:inline font-medium">{userProfile.display_name}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
@@ -122,7 +158,6 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* Tabs Navigation - Only show when authenticated */}
         {isAuthenticated ? (
           <Tabs defaultValue="my-tournaments" className="w-full">
             <TabsList className="grid w-full grid-cols-4 mb-8">
