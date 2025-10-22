@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, UserPlus, MessageCircle, Flame } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { AddFriendDialog } from "./AddFriendDialog"; // Importar o novo componente
 
 interface Friend {
   id: string;
@@ -27,11 +28,7 @@ export const FriendsTab = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchFriends();
-  }, []);
-
-  const fetchFriends = async () => {
+  const fetchFriends = useCallback(async () => {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
@@ -65,8 +62,8 @@ export const FriendsTab = () => {
         const friendProfile = isCurrentUserOwner ? fs.profiles_friend_id : fs.profiles_user_id;
 
         // Mock data for wins, balance, online, winStreak as these are not in the current schema
-        const mockWins = Math.floor(Math.random() * 10) + 1;
-        const mockLosses = Math.floor(Math.random() * 10) + 1;
+        const mockYourWins = Math.floor(Math.random() * 10) + 1;
+        const mockTheirWins = Math.floor(Math.random() * 10) + 1;
         const mockBalance = (Math.random() * 200 - 100);
         const mockOnline = Math.random() > 0.5;
         const mockWinStreak = Math.floor(Math.random() * 5);
@@ -75,11 +72,11 @@ export const FriendsTab = () => {
           id: friendProfile.id,
           username: friendProfile.full_name || "Usuário Desconhecido",
           avatar: friendProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friendProfile.full_name}`,
-          yourWins: isCurrentUserOwner ? mockWins : mockLosses, // Placeholder
-          theirWins: isCurrentUserOwner ? mockLosses : mockWins, // Placeholder
-          balance: mockBalance, // Placeholder
-          online: mockOnline, // Placeholder
-          winStreak: mockWinStreak, // Placeholder
+          yourWins: mockYourWins, 
+          theirWins: mockTheirWins, 
+          balance: mockBalance, 
+          online: mockOnline, 
+          winStreak: mockWinStreak, 
         };
       });
 
@@ -94,7 +91,11 @@ export const FriendsTab = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchFriends();
+  }, [fetchFriends]);
 
   const getBalanceColor = (balance: number) => {
     if (balance > 0) return "text-success";
@@ -136,10 +137,7 @@ export const FriendsTab = () => {
             className="pl-10"
           />
         </div>
-        <Button className="gradient-primary">
-          <UserPlus className="w-4 h-4 mr-2" />
-          Adicionar
-        </Button>
+        <AddFriendDialog onFriendAdded={fetchFriends} /> {/* Usar o novo componente aqui */}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -228,10 +226,10 @@ export const FriendsTab = () => {
                   <div className={`flex justify-center`}>
                     <div className={`px-4 py-2 rounded-full ${
                       friend.balance > 0 
-                        ? 'bg-success/20 border border-success/30' 
+                        ? "bg-success/20 border border-success/30" 
                         : friend.balance < 0 
-                        ? 'bg-destructive/20 border border-destructive/30'
-                        : 'bg-muted border border-border'
+                        ? "bg-destructive/20 border border-destructive/30"
+                        : "bg-muted border border-border"
                     }`}>
                       <span className={`font-bold text-sm ${getBalanceColor(friend.balance)}`}>
                         Saldo: {formatBalance(friend.balance)}
