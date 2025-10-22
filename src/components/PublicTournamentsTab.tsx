@@ -1,127 +1,105 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Trophy, Clock } from "lucide-react";
+import { Users, DollarSign, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface PublicTournament {
+interface Tournament {
   id: string;
-  name: string;
+  title: string;
   game: string;
-  players: number;
-  maxPlayers: number;
   entryFee: number;
   prizePool: number;
+  players: number;
+  maxPlayers: number;
   startDate: string;
   organizer: string;
-  status: string;
 }
 
 export const PublicTournamentsTab = () => {
-  const [tournaments, setTournaments] = useState<PublicTournament[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
+    const fetchPublicTournaments = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from("tournaments")
+          .select(`
+            id, title, game, entry_fee, prize_pool, max_participants, starts_at,
+            profiles!owner_id (full_name),
+            participants (count)
+          `)
+          .eq("public", true)
+          .order("starts_at", { ascending: true });
+
+        if (error) throw error;
+
+        const formattedTournaments: Tournament[] = (data || []).map((t: any) => ({
+          id: t.id,
+          title: t.title,
+          game: t.game,
+          entryFee: t.entry_fee,
+          prizePool: t.prize_pool,
+          players: t.participants[0]?.count || 0,
+          maxPlayers: t.max_participants,
+          startDate: t.starts_at,
+          organizer: t.profiles?.full_name || "Desconhecido",
+        }));
+
+        setTournaments(formattedTournaments);
+      } catch (error) {
+        console.error("Erro ao buscar torneios públicos:", error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar os torneios públicos.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchPublicTournaments();
-  }, []);
-
-  const fetchPublicTournaments = async () => {
-    try {
-      setLoading(true);
-      
-      // Buscar torneios públicos do Supabase
-      const { data: publicTournaments, error } = await supabase
-        .from("tournaments" as any)
-        .select(`
-          id,
-          title,
-          game,
-          max_participants,
-          prize_pool,
-          entry_fee,
-          status,
-          starts_at,
-          owner_id,
-          participants (id)
-        `)
-        .eq("public", true)
-        .order("starts_at", { ascending: true });
-
-      if (error) throw error;
-
-      // Buscar informações dos proprietários dos torneios
-      const tournamentsWithOwners = await Promise.all(
-        (publicTournaments || []).map(async (tournament: any) => {
-          const { data: ownerData } = await supabase
-            .from("profiles" as any)
-            .select("full_name")
-            .eq("id", tournament.owner_id)
-            .single();
-
-          return {
-            id: tournament.id,
-            name: tournament.title,
-            game: tournament.game,
-            players: tournament.participants?.length || 0,
-            maxPlayers: tournament.max_participants,
-            entryFee: tournament.entry_fee || 0,
-            prizePool: tournament.prize_pool || 0,
-            startDate: tournament.starts_at,
-            organizer: ownerData?.full_name || "Organizador Desconhecido",
-            status: tournament.status,
-          };
-        })
-      );
-
-      setTournaments(tournamentsWithOwners);
-    } catch (error) {
-      console.error("Erro ao buscar torneios públicos:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os torneios públicos.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [toast]);
 
   const handleJoinTournament = async (tournamentId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
       if (!user) {
         toast({
           title: "Erro",
-          description: "Você precisa estar logado para participar de um torneio.",
+          description: "Você precisa estar logado para se inscrever em um torneio.",
           variant: "destructive",
         });
         return;
       }
 
-      // Adicionar o usuário como participante do torneio
-      const { error } = await supabase
-        .from("participants" as any)
-        .insert({
-          tournament_id: tournamentId,
-          user_id: user.id,
-          status: "pending",
-        });
+      const { error } = await supabase.from("participants").insert({
+        tournament_id: tournamentId,
+        user_id: user.id,
+        status: "accepted", // Join directly
+      });
 
       if (error) throw error;
 
       toast({
-        title: "Sucesso",
-        description: "Você se inscreveu no torneio com sucesso!",
+        title: "Sucesso!",
+        description: "Você se inscreveu no torneio.",
       });
 
-      // Recarregar a lista de torneios
-      fetchPublicTournaments();
+      // Refresh tournament list to update player count
+      // (or you can update the state locally for better UX)
+      setTournaments(prev => prev.map(t => 
+        t.id === tournamentId ? { ...t, players: t.players + 1 } : t
+      ));
+
     } catch (error) {
-      console.error("Erro ao participar do torneio:", error);
+      console.error("Erro ao se inscrever no torneio:", error);
       toast({
         title: "Erro",
         description: "Não foi possível se inscrever no torneio.",
@@ -140,46 +118,37 @@ export const PublicTournamentsTab = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Campeonatos Públicos</h2>
-          <p className="text-muted-foreground">Participe de torneios abertos à comunidade</p>
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold mb-2">Campeonatos Públicos</h2>
+        <p className="text-muted-foreground">Participe de torneios abertos à comunidade</p>
       </div>
-
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {tournaments.length > 0 ? (
           tournaments.map((tournament) => (
-            <Card key={tournament.id} className="glass-card hover:shadow-lg transition-all">
+            <Card key={tournament.id} className="glass-card hover:shadow-xl transition-all">
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-xl mb-1">{tournament.name}</CardTitle>
-                    <CardDescription className="flex items-center gap-2">
-                      {tournament.game} • Organizado por {tournament.organizer}
-                    </CardDescription>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>{tournament.title}</CardTitle>
+                    <CardDescription>{tournament.game} • Organizado por {tournament.organizer}</CardDescription>
                   </div>
-                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                    {tournament.status === "active" ? "Em Andamento" : "Aguardando"}
-                  </Badge>
+                  <Badge variant="secondary">Aguardando</Badge>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center text-sm">
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Participantes</p>
-                      <p className="font-semibold">
-                        {tournament.players}/{tournament.maxPlayers}
-                      </p>
+                      <p className="font-semibold">{tournament.players}/{tournament.maxPlayers}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-muted-foreground" />
+                    <DollarSign className="w-4 h-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Premiação</p>
-                      <p className="font-semibold text-primary">R$ {tournament.prizePool}</p>
+                      <p className="font-semibold text-success">R$ {tournament.prizePool}</p>
                     </div>
                   </div>
                   <div>
@@ -215,4 +184,3 @@ export const PublicTournamentsTab = () => {
     </div>
   );
 };
-

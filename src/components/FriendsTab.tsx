@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, UserPlus, MessageCircle, Flame } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { AddFriendDialog } from "./AddFriendDialog"; // Importar o novo componente
+import { AddFriendDialog } from "./AddFriendDialog";
 
 interface Friend {
   id: string;
@@ -41,16 +41,15 @@ export const FriendsTab = () => {
 
       const currentUserId = user.id;
 
-      // Fetch accepted friendships where current user is user_id or friend_id
       const { data: friendships, error } = await supabase
-        .from("friends" as any)
+        .from("friends")
         .select(`
           id,
           user_id,
           friend_id,
           status,
-          profiles_user_id (id, full_name, avatar_url),
-          profiles_friend_id (id, full_name, avatar_url)
+          profiles_user:profiles!user_id(id, full_name, avatar_url),
+          profiles_friend:profiles!friend_id(id, full_name, avatar_url)
         `)
         .eq("status", "accepted")
         .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
@@ -58,10 +57,8 @@ export const FriendsTab = () => {
       if (error) throw error;
 
       const formattedFriends: Friend[] = (friendships || []).map((fs: any) => {
-        const isCurrentUserOwner = fs.user_id === currentUserId;
-        const friendProfile = isCurrentUserOwner ? fs.profiles_friend_id : fs.profiles_user_id;
+        const friendProfile = fs.user_id === currentUserId ? fs.profiles_friend : fs.profiles_user;
 
-        // Mock data for wins, balance, online, winStreak as these are not in the current schema
         const mockYourWins = Math.floor(Math.random() * 10) + 1;
         const mockTheirWins = Math.floor(Math.random() * 10) + 1;
         const mockBalance = (Math.random() * 200 - 100);
@@ -72,13 +69,13 @@ export const FriendsTab = () => {
           id: friendProfile.id,
           username: friendProfile.full_name || "Usuário Desconhecido",
           avatar: friendProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friendProfile.full_name}`,
-          yourWins: mockYourWins, 
-          theirWins: mockTheirWins, 
-          balance: mockBalance, 
-          online: mockOnline, 
-          winStreak: mockWinStreak, 
+          yourWins: mockYourWins,
+          theirWins: mockTheirWins,
+          balance: mockBalance,
+          online: mockOnline,
+          winStreak: mockWinStreak,
         };
-      });
+      } );
 
       setFriends(formattedFriends);
     } catch (error) {
@@ -137,7 +134,7 @@ export const FriendsTab = () => {
             className="pl-10"
           />
         </div>
-        <AddFriendDialog onFriendAdded={fetchFriends} /> {/* Usar o novo componente aqui */}
+        <AddFriendDialog onFriendAdded={fetchFriends} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -153,17 +150,11 @@ export const FriendsTab = () => {
                 onClick={() => navigate(`/friend/${friend.id}`)}
               >
                 <CardContent className="pt-6 pb-6 space-y-4">
-                  {/* Seção Superior: Placar do Confronto */}
                   <div className="flex items-center justify-between gap-3">
-                    {/* Avatar do Usuário */}
                     <Avatar className="w-14 h-14 border-2 border-primary/20">
                       <AvatarImage src={undefined} />
-                      <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                        VC
-                      </AvatarFallback>
+                      <AvatarFallback className="bg-primary/10 text-primary font-bold">VC</AvatarFallback>
                     </Avatar>
-
-                    {/* Círculos de Vitórias e Derrotas */}
                     <div className="flex items-center gap-2">
                       <div className="relative">
                         <div className="w-14 h-14 rounded-full bg-success flex items-center justify-center shadow-lg">
@@ -176,39 +167,28 @@ export const FriendsTab = () => {
                           </div>
                         )}
                       </div>
-                      
                       <div className="w-14 h-14 rounded-full bg-destructive flex items-center justify-center shadow-lg">
                         <span className="text-white text-xl font-bold">{friend.theirWins}</span>
                       </div>
                     </div>
-
-                    {/* Avatar do Amigo */}
                     <div className="relative">
                       <Avatar className="w-14 h-14 border-2 border-border">
                         <AvatarImage src={friend.avatar} />
-                        <AvatarFallback className="bg-muted font-bold">
-                          {friend.username.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
+                        <AvatarFallback className="bg-muted font-bold">{friend.username.substring(0, 2).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       {friend.online && (
                         <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-success rounded-full border-2 border-background" />
                       )}
                     </div>
                   </div>
-
-                  {/* Seção Central: Identificação e Status */}
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-2">
                       <h3 className="font-bold text-lg">{friend.username}</h3>
                       {friend.online && (
-                        <Badge className="bg-success/10 text-success border-success/20 text-xs" variant="outline">
-                          Online
-                        </Badge>
+                        <Badge className="bg-success/10 text-success border-success/20 text-xs" variant="outline">Online</Badge>
                       )}
                     </div>
                   </div>
-
-                  {/* Seção Intermediária: Medidor de Domínio */}
                   <div className="space-y-2">
                     <div className="relative h-3 w-full overflow-hidden rounded-full bg-destructive/20">
                       <div 
@@ -221,8 +201,6 @@ export const FriendsTab = () => {
                       <span>{(100 - winPercentage).toFixed(0)}% Ele</span>
                     </div>
                   </div>
-
-                  {/* Seção Inferior: Financeiro */}
                   <div className={`flex justify-center`}>
                     <div className={`px-4 py-2 rounded-full ${
                       friend.balance > 0 
@@ -231,26 +209,15 @@ export const FriendsTab = () => {
                         ? "bg-destructive/20 border border-destructive/30"
                         : "bg-muted border border-border"
                     }`}>
-                      <span className={`font-bold text-sm ${getBalanceColor(friend.balance)}`}>
-                        Saldo: {formatBalance(friend.balance)}
-                      </span>
+                      <span className={`font-bold text-sm ${getBalanceColor(friend.balance)}`}>Saldo: {formatBalance(friend.balance)}</span>
                     </div>
                   </div>
-
-                  {/* Seção de Ações: Botões */}
                   <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="flex-1"
-                    >
+                    <Button variant="outline" size="sm" className="flex-1">
                       <MessageCircle className="w-4 h-4 mr-1" />
                       Chat
                     </Button>
-                    <Button 
-                      size="sm"
-                      className="flex-1 gradient-primary transition-all duration-300 hover:scale-105 hover:shadow-lg"
-                    >
+                    <Button size="sm" className="flex-1 gradient-primary transition-all duration-300 hover:scale-105 hover:shadow-lg">
                       Desafiar
                     </Button>
                   </div>
@@ -269,4 +236,3 @@ export const FriendsTab = () => {
     </div>
   );
 };
-

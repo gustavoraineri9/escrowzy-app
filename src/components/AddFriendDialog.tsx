@@ -30,11 +30,7 @@ export const AddFriendDialog = ({ onFriendAdded }: { onFriendAdded: () => void }
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast({
-          title: "Erro",
-          description: "Você precisa estar logado para buscar usuários.",
-          variant: "destructive",
-        });
+        toast({ title: "Erro", description: "Você precisa estar logado para buscar usuários.", variant: "destructive" });
         setIsSearching(false);
         return;
       }
@@ -43,11 +39,10 @@ export const AddFriendDialog = ({ onFriendAdded }: { onFriendAdded: () => void }
         .from("profiles")
         .select("id, full_name, avatar_url")
         .ilike("full_name", `%${searchUsername}%`)
-        .neq("id", user.id); // Não buscar o próprio usuário
+        .neq("id", user.id);
 
       if (error) throw error;
 
-      // Filter out users who are already friends or have pending requests
       const { data: existingFriendships, error: friendshipError } = await supabase
         .from("friends")
         .select("user_id, friend_id, status")
@@ -56,7 +51,6 @@ export const AddFriendDialog = ({ onFriendAdded }: { onFriendAdded: () => void }
       if (friendshipError) throw friendshipError;
 
       const filteredResults = data.filter(profile => {
-        // Check if they are already friends or if there's a pending request
         return !existingFriendships.some(fs => 
           (fs.user_id === user.id && fs.friend_id === profile.id) ||
           (fs.user_id === profile.id && fs.friend_id === user.id)
@@ -66,11 +60,7 @@ export const AddFriendDialog = ({ onFriendAdded }: { onFriendAdded: () => void }
       setSearchResults(filteredResults);
     } catch (error) {
       console.error("Erro ao buscar usuários:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível buscar usuários. Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Não foi possível buscar usuários. Tente novamente.", variant: "destructive" });
     } finally {
       setIsSearching(false);
     }
@@ -81,11 +71,7 @@ export const AddFriendDialog = ({ onFriendAdded }: { onFriendAdded: () => void }
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast({
-          title: "Erro",
-          description: "Você precisa estar logado para enviar solicitações.",
-          variant: "destructive",
-        });
+        toast({ title: "Erro", description: "Você precisa estar logado para enviar solicitações.", variant: "destructive" });
         setIsSubmitting(false);
         return;
       }
@@ -98,19 +84,12 @@ export const AddFriendDialog = ({ onFriendAdded }: { onFriendAdded: () => void }
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: "Solicitação de amizade enviada!",
-      });
-      onFriendAdded(); // Notify parent to refresh friends/invites
-      setSearchResults(prev => prev.filter(result => result.id !== friendId)); // Remove from results
+      toast({ title: "Sucesso", description: "Solicitação de amizade enviada!" });
+      onFriendAdded();
+      setSearchResults(prev => prev.filter(result => result.id !== friendId));
     } catch (error) {
       console.error("Erro ao enviar solicitação de amizade:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível enviar a solicitação de amizade. Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Não foi possível enviar a solicitação de amizade. Tente novamente.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -127,9 +106,7 @@ export const AddFriendDialog = ({ onFriendAdded }: { onFriendAdded: () => void }
       <DialogContent className="sm:max-w-[425px] glass-card">
         <DialogHeader>
           <DialogTitle>Adicionar Novo Amigo</DialogTitle>
-          <DialogDescription>
-            Busque por usuários pelo nome completo e envie solicitações de amizade.
-          </DialogDescription>
+          <DialogDescription>Busque por usuários pelo nome completo e envie solicitações de amizade.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="flex items-center space-x-2">
@@ -152,15 +129,11 @@ export const AddFriendDialog = ({ onFriendAdded }: { onFriendAdded: () => void }
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.full_name}`} />
-                      <AvatarFallback>{user.full_name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                      <AvatarFallback>{user.full_name.substring(0, 2 ).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <span className="font-medium">{user.full_name}</span>
                   </div>
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleSendFriendRequest(user.id)}
-                    disabled={isSubmitting}
-                  >
+                  <Button size="sm" onClick={() => handleSendFriendRequest(user.id)} disabled={isSubmitting}>
                     {isSubmitting ? "Enviando..." : <UserPlus className="w-4 h-4" />}
                   </Button>
                 </div>
@@ -179,4 +152,3 @@ export const AddFriendDialog = ({ onFriendAdded }: { onFriendAdded: () => void }
     </Dialog>
   );
 };
-
