@@ -54,7 +54,7 @@ export const InvitesTab = () => {
       const currentUserId = user.id;
       let fetchedInvites: Invite[] = [];
 
-      // Fetch tournament invites (pending participants)
+      // 1. Fetch tournament invites
       const { data: participantInvites, error: participantError } = await supabase
         .from("participants")
         .select(`
@@ -73,7 +73,7 @@ export const InvitesTab = () => {
             owner_id, 
             owner_profile:profiles!owner_id(id, full_name, avatar_url)
           )
-        `) // Comentário removido desta string
+        `)
         .eq("user_id", currentUserId)
         .eq("status", "pending");
 
@@ -84,7 +84,6 @@ export const InvitesTab = () => {
           id: `tour-${p.id}`,
           type: "tournament",
           from: {
-            // Usando o nome do campo 'owner_profile'
             name: p.tournaments.owner_profile.full_name || "Organizador",
             avatar: p.tournaments.owner_profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.tournaments.owner_profile.full_name}`,
             id: p.tournaments.owner_profile.id,
@@ -105,7 +104,7 @@ export const InvitesTab = () => {
         fetchedInvites.push(...tournamentInvites);
       }
 
-      // Fetch friend requests (pending friends where current user is friend_id)
+      // 2. Fetch friend requests
       const { data: friendRequests, error: friendError } = await supabase
         .from("friends")
         .select(`
@@ -113,7 +112,8 @@ export const InvitesTab = () => {
           user_id,
           status,
           created_at,
-          profiles!user_id(id, full_name, avatar_url)
+          // CHAVE AQUI: Força o join com 'profiles' usando a coluna 'user_id' da tabela 'friends'
+          sender_profile:profiles!user_id(id, full_name, avatar_url)
         `)
         .eq("friend_id", currentUserId)
         .eq("status", "pending");
@@ -125,9 +125,10 @@ export const InvitesTab = () => {
           id: `friend-${f.id}`,
           type: "friend",
           from: {
-            name: f.profiles.full_name || "Usuário",
-            avatar: f.profiles.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.profiles.full_name}`,
-            id: f.profiles.id,
+            // CHAVE AQUI: Acessa os dados usando o alias 'sender_profile'
+            name: f.sender_profile.full_name || "Usuário",
+            avatar: f.sender_profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.sender_profile.full_name}`,
+            id: f.sender_profile.id,
           },
           createdAt: f.created_at,
           friendshipId: f.id,
@@ -139,10 +140,11 @@ export const InvitesTab = () => {
       setInvites(fetchedInvites);
 
     } catch (error) {
-      console.error("Erro ao carregar convites:", error);
+      // Logamos o erro de forma mais segura para evitar quebra da prévia
+      console.error("Erro ao carregar convites:", JSON.stringify(error, null, 2));
       toast({
         title: "Erro",
-        description: "Não foi possível carregar os convites.",
+        description: "Não foi possível carregar os convites. Verifique o console para detalhes.",
         variant: "destructive",
       });
     } finally {
@@ -247,12 +249,11 @@ export const InvitesTab = () => {
                           <p className="text-xs text-muted-foreground">Início</p>
                           <p className="font-medium">{new Date(invite.tournament.startDate).toLocaleDateString()}</p>
                         </div>
-                      </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row items-center gap-2 mt-4 sm:mt-0">
-                      <Button size="sm" className="w-full sm:w-auto bg-success/20 text-success hover:bg-success/30" onClick={() => handleAccept(invite)}><Check className="w-4 h-4" /></Button>
-                      <Button size="sm" className="w-full sm:w-auto bg-destructive/20 text-destructive hover:bg-destructive/30" onClick={() => handleDecline(invite)}><X className="w-4 h-4" /></Button>
-                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-center gap-2 mt-4 sm:mt-0">
+                    <Button size="sm" className="w-full sm:w-auto bg-success/20 text-success hover:bg-success/30" onClick={() => handleAccept(invite)}><Check className="w-4 h-4" /></Button>
+                    <Button size="sm" className="w-full sm:w-auto bg-destructive/20 text-destructive hover:bg-destructive/30" onClick={() => handleDecline(invite)}><X className="w-4 h-4" /></Button>
                   </div>
                 </CardContent>
               ) : (
@@ -279,7 +280,6 @@ export const InvitesTab = () => {
                 </CardContent>
               )}
             </Card>
-          ))
         ) : (
           <Card className="glass-card p-8 text-center">
             <Trophy className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
