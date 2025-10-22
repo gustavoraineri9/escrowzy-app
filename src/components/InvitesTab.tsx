@@ -7,8 +7,6 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-// Interfaces mantidas...
-
 interface TournamentInvite {
   id: string;
   type: "tournament";
@@ -73,9 +71,9 @@ export const InvitesTab = () => {
             max_participants, 
             starts_at, 
             owner_id, 
-            owner_profile:profiles!owner_id(id, full_name, avatar_url) // <-- CORREÇÃO DA SINTAXE PGRST100
+            owner_profile:profiles!owner_id(id, full_name, avatar_url)
           )
-        `)
+        `) // Comentário removido desta string
         .eq("user_id", currentUserId)
         .eq("status", "pending");
 
@@ -86,7 +84,7 @@ export const InvitesTab = () => {
           id: `tour-${p.id}`,
           type: "tournament",
           from: {
-            // ATUALIZAÇÃO NO CAMPO DE RETORNO
+            // Usando o nome do campo 'owner_profile'
             name: p.tournaments.owner_profile.full_name || "Organizador",
             avatar: p.tournaments.owner_profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.tournaments.owner_profile.full_name}`,
             id: p.tournaments.owner_profile.id,
@@ -159,7 +157,6 @@ export const InvitesTab = () => {
   const handleAccept = async (invite: Invite) => {
     try {
       if (invite.type === "tournament") {
-        // Corrigindo para "active" (se o seu status correto para aceito for 'active')
         const { error } = await supabase
           .from("participants")
           .update({ status: "active" }) 
@@ -216,9 +213,81 @@ export const InvitesTab = () => {
       <div>
         <h2 className="text-2xl font-bold mb-2">Convites</h2>
         <p className="text-muted-foreground">Você tem {invites.length} convites pendentes</p>
-        {/* O restante do JSX foi omitido por brevidade, mas está correto no seu código. */}
       </div>
-      {/* ... JSX restante ... */}
+      <div className="space-y-4">
+        {invites.length > 0 ? (
+          invites.map((invite) => (
+            <Card key={invite.id} className="glass-card">
+              {invite.type === "tournament" ? (
+                // Tournament Invite Card
+                <CardContent className="pt-6">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={invite.from.avatar} />
+                      <AvatarFallback>{invite.from.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <p className="text-sm">
+                        <span className="font-semibold">{invite.from.name}</span> te convidou para o torneio <span className="font-semibold">{invite.tournament.name}</span>.
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 text-sm bg-muted/50 p-3 rounded-md">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Jogo</p>
+                          <p className="font-medium">{invite.tournament.game}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Entrada</p>
+                          <p className="font-medium">R$ {invite.tournament.entryFee}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Prêmio</p>
+                          <p className="font-medium">R$ {invite.tournament.prizePool}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Início</p>
+                          <p className="font-medium">{new Date(invite.tournament.startDate).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-center gap-2 mt-4 sm:mt-0">
+                      <Button size="sm" className="w-full sm:w-auto bg-success/20 text-success hover:bg-success/30" onClick={() => handleAccept(invite)}><Check className="w-4 h-4" /></Button>
+                      <Button size="sm" className="w-full sm:w-auto bg-destructive/20 text-destructive hover:bg-destructive/30" onClick={() => handleDecline(invite)}><X className="w-4 h-4" /></Button>
+                    </div>
+                  </div>
+                </CardContent>
+              ) : (
+                // Friend Invite Card
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage src={invite.from.avatar} />
+                        <AvatarFallback>{invite.from.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm">
+                          <span className="font-semibold">{invite.from.name}</span> te enviou uma solicitação de amizade.
+                        </p>
+                        <p className="text-xs text-muted-foreground">{new Date(invite.createdAt).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" className="bg-success/20 text-success hover:bg-success/30" onClick={() => handleAccept(invite)}><Check className="w-4 h-4" /></Button>
+                      <Button size="sm" className="bg-destructive/20 text-destructive hover:bg-destructive/30" onClick={() => handleDecline(invite)}><X className="w-4 h-4" /></Button>
+                    </div>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          ))
+        ) : (
+          <Card className="glass-card p-8 text-center">
+            <Trophy className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">Nenhum convite pendente</h3>
+            <p className="text-muted-foreground">Quando você receber convites, eles aparecerão aqui.</p>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };
