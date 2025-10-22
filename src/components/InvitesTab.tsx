@@ -61,7 +61,7 @@ export const InvitesTab = () => {
           id,
           tournament_id,
           status,
-          created_at,
+          joined_at, // <-- CORRIGIDO AQUI: de created_at para joined_at
           tournaments!inner(id, title, game, entry_fee, prize_pool, max_participants, starts_at, owner_id, profiles!owner_id(id, full_name, avatar_url))
         `)
         .eq("user_id", currentUserId)
@@ -88,7 +88,7 @@ export const InvitesTab = () => {
             maxPlayers: p.tournaments.max_participants,
             startDate: p.tournaments.starts_at,
           },
-          createdAt: p.created_at,
+          createdAt: p.joined_at, // <-- CORRIGIDO AQUI: de p.created_at para p.joined_at
           participantId: p.id,
         } ));
         fetchedInvites.push(...tournamentInvites);
@@ -148,7 +148,7 @@ export const InvitesTab = () => {
       if (invite.type === "tournament") {
         const { error } = await supabase
           .from("participants")
-          .update({ status: "accepted" })
+          .update({ status: "active" }) // <-- CORRIGIDO AQUI: de accepted para active
           .eq("id", invite.participantId);
         if (error) throw error;
       } else if (invite.type === "friend") {
