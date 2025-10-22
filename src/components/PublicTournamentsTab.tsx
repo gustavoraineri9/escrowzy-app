@@ -82,7 +82,7 @@ export const PublicTournamentsTab = () => {
       const { error } = await supabase.from("participants").insert({
         tournament_id: tournamentId,
         user_id: user.id,
-        status: "accepted", // Join directly
+        status: "active", // Join directly
       });
 
       if (error) throw error;
