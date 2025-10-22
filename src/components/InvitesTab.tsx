@@ -73,7 +73,7 @@ export const InvitesTab = () => {
             owner_id, 
             owner_profile:profiles!owner_id(id, full_name, avatar_url)
           )
-        `) // Comentário removido desta string
+        `)
         .eq("user_id", currentUserId)
         .eq("status", "pending");
 
@@ -84,7 +84,6 @@ export const InvitesTab = () => {
           id: `tour-${p.id}`,
           type: "tournament",
           from: {
-            // Usando o nome do campo 'owner_profile'
             name: p.tournaments.owner_profile.full_name || "Organizador",
             avatar: p.tournaments.owner_profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.tournaments.owner_profile.full_name}`,
             id: p.tournaments.owner_profile.id,
@@ -113,7 +112,9 @@ export const InvitesTab = () => {
           user_id,
           status,
           created_at,
-          profiles!user_id(id, full_name, avatar_url)
+          // CORREÇÃO PARA AMBIGUIDADE (PGRST200): 
+          // Usamos o alias e o nome da constraint de FK para garantir que 'user_id' seja usado.
+          sender_profile:profiles!friends_user_id_fkey(id, full_name, avatar_url)
         `)
         .eq("friend_id", currentUserId)
         .eq("status", "pending");
@@ -125,9 +126,10 @@ export const InvitesTab = () => {
           id: `friend-${f.id}`,
           type: "friend",
           from: {
-            name: f.profiles.full_name || "Usuário",
-            avatar: f.profiles.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.profiles.full_name}`,
-            id: f.profiles.id,
+            // ATUALIZADO: Usando o novo alias 'sender_profile'
+            name: f.sender_profile.full_name || "Usuário",
+            avatar: f.sender_profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.sender_profile.full_name}`,
+            id: f.sender_profile.id,
           },
           createdAt: f.created_at,
           friendshipId: f.id,
@@ -204,6 +206,7 @@ export const InvitesTab = () => {
     return (
       <div className="flex items-center justify-center py-12">
         <p className="text-muted-foreground">Carregando convites...</p>
+        
       </div>
     );
   }
@@ -279,7 +282,6 @@ export const InvitesTab = () => {
                 </CardContent>
               )}
             </Card>
-          ))
         ) : (
           <Card className="glass-card p-8 text-center">
             <Trophy className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
