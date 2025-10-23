@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, DollarSign, Clock } from "lucide-react";
-import Link from "next/link"; // Assumindo Next.js para o roteamento
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -126,8 +125,7 @@ export const PublicTournamentsTab = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {tournaments.length > 0 ? (
           tournaments.map((tournament) => (
-            <Link key={tournament.id} href={`/tournament/${tournament.id}`} passHref legacyBehavior>
-                    <Card component="a" className="glass-card hover:shadow-xl transition-all cursor-pointer">
+            <Card key={tournament.id} className="glass-card hover:shadow-xl transition-all">
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
@@ -167,17 +165,13 @@ export const PublicTournamentsTab = () => {
                 </div>
                 <Button 
                   className="w-full gradient-primary"
-                  onClick={(e) => {
-                    e.preventDefault(); // Impede a navegação do Link ao clicar no botão
-                    handleJoinTournament(tournament.id);
-                  }}
+                  onClick={() => handleJoinTournament(tournament.id)}
                   disabled={tournament.players >= tournament.maxPlayers}
                 >
                   {tournament.players >= tournament.maxPlayers ? "Torneio Cheio" : "Participar do Torneio"}
                 </Button>
               </CardContent>
             </Card>
-            </Link>
           ))
         ) : (
           <Card className="glass-card p-8 text-center">
