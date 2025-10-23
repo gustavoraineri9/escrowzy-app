@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, Users, DollarSign, Calendar, Check, X } from "lucide-react";
+import { Trophy, Check, X } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -64,7 +63,6 @@ export const InvitesTab = () => {
 
       // =================================================================
       // 1. Fetch tournament invites (pending participants)
-      // ESTA SEÇÃO PERMANECE INALTERADA (Funcionava corretamente)
       // =================================================================
       const { data: participantInvites, error: participantError } = await supabase
         .from("participants")
@@ -116,16 +114,15 @@ export const InvitesTab = () => {
       }
 
       // =================================================================
-      // 2. Fetch friend requests (pending friends where current user is friend_id)
-      // SEÇÃO ALTERADA PARA USAR CONSULTA EM DUAS ETAPAS (SOLUÇÃO GARANTIDA)
+      // 2. Fetch friend requests (pending friends) - SOLUÇÃO EM DUAS ETAPAS
       // =================================================================
       
-      // Passo A: Buscar apenas os IDs dos remetentes
+      // Passo A: Buscar apenas os IDs dos remetentes (CORRIGIDO: Removido o comentário problemático)
       const { data: friendRequests, error: friendError } = await supabase
         .from("friends")
         .select(`
           id,
-          user_id, // Este é o ID do usuário que enviou (o remetente)
+          user_id, 
           status,
           created_at
         `)
@@ -137,10 +134,10 @@ export const InvitesTab = () => {
       if (friendRequests && friendRequests.length > 0) {
         const senderIds = friendRequests.map((f: any) => f.user_id);
 
-        // Passo B: Buscar os perfis dos remetentes
+        // Passo B: Buscar os perfis dos remetentes usando 'auth_uid'
         const { data: senderProfiles, error: profileError } = await supabase
             .from("profiles")
-            .select("auth_uid, full_name, avatar_url, id") // Incluindo 'id' (do perfil) e 'auth_uid'
+            .select("auth_uid, full_name, avatar_url, id")
             .in("auth_uid", senderIds); // Filtra na sua coluna de referência 'auth_uid'
 
         if (profileError) throw profileError;
@@ -148,21 +145,20 @@ export const InvitesTab = () => {
         // Passo C: Mapear os perfis para fácil acesso (auth_uid -> profile)
         const profileMap = new Map<string, ProfileData>();
         if (senderProfiles) {
-             senderProfiles.forEach((p: ProfileData) => {
-                 profileMap.set(p.auth_uid, p);
+             senderProfiles.forEach((p: any) => {
+                 profileMap.set(p.auth_uid, p as ProfileData);
              });
         }
         
         // Passo D: Juntar as informações e criar os convites
         const friendInvites: FriendInvite[] = friendRequests.map((f: any) => {
-          const profile = profileMap.get(f.user_id); // f.user_id é o auth_uid
+          const profile = profileMap.get(f.user_id); 
           
           return {
             id: `friend-${f.id}`,
             type: "friend",
             from: {
               name: profile?.full_name || "Usuário",
-              // Fallback para avatar caso 'avatar_url' seja null
               avatar: profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.full_name || f.id}`,
               id: profile?.id || f.user_id, // Usando o ID do perfil ou o user_id como fallback
             },
@@ -177,7 +173,6 @@ export const InvitesTab = () => {
       setInvites(fetchedInvites);
 
     } catch (error) {
-      // O 'Erro ao carregar convites' agora virá do erro do PostgREST ou do JS
       console.error("Erro ao carregar convites:", error);
       toast({
         title: "Erro",
@@ -193,8 +188,6 @@ export const InvitesTab = () => {
     fetchInvites();
   }, [fetchInvites]);
 
-  // Restante do código (handleAccept, handleDecline e o JSX) permanece inalterado
-  
   const handleAccept = async (invite: Invite) => {
     try {
       if (invite.type === "tournament") {
@@ -319,6 +312,7 @@ export const InvitesTab = () => {
                   </div>
                 </CardContent>
               )}
+              
             </Card>
           ))
         ) : (
@@ -327,6 +321,7 @@ export const InvitesTab = () => {
             <h3 className="text-lg font-semibold mb-2">Nenhum convite pendente</h3>
             <p className="text-muted-foreground">Quando você receber convites, eles aparecerão aqui.</p>
           </Card>
+
         )}
       </div>
     </div>
