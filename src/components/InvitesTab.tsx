@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, Users, DollarSign, Calendar, Check, X, Gamepad2, Landmark } from "lucide-react"; // Importei ícones adicionais
+import { Trophy, Users, DollarSign, Calendar, Check, X, Gamepad2, Landmark } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -35,9 +35,10 @@ interface FriendInvite {
 
 type Invite = TournamentInvite | FriendInvite;
 
+// Tipagem corrigida para refletir a estrutura do seu banco de dados
 interface ProfileData {
-    auth_uid: string;
-    id: string;
+    // Usamos 'id' aqui, pois você confirmou que é o Auth ID no profiles
+    id: string; 
     full_name: string | null;
     display_name: string | null;
     avatar_url: string | null;
@@ -62,7 +63,7 @@ export const InvitesTab = () => {
       const currentUserId = user.id;
       let fetchedInvites: Invite[] = [];
 
-      // 1. Fetch tournament invites
+      // 1. Fetch tournament invites (Mantido o código de torneio anterior)
       const { data: participantInvites, error: participantError } = await supabase
         .from("participants")
         .select(`
@@ -102,7 +103,6 @@ export const InvitesTab = () => {
             game: p.tournaments.game,
             entryFee: p.tournaments.entry_fee,
             prizePool: p.tournaments.prize_pool,
-            // Simulação de jogadores atuais se não tiver o count no select
             players: Math.floor(p.tournaments.max_participants * 0.5), 
             maxPlayers: p.tournaments.max_participants,
             startDate: p.tournaments.starts_at,
@@ -113,13 +113,14 @@ export const InvitesTab = () => {
         fetchedInvites.push(...tournamentInvites);
       }
 
-      // 2. Fetch friend requests (SOLUÇÃO EM DUAS ETAPAS)
+      // 2. Fetch friend requests (SOLUÇÃO EM DUAS ETAPAS CORRIGIDA)
       
+      // Passo A: Buscar IDs dos remetentes (user_id)
       const { data: friendRequests, error: friendError } = await supabase
         .from("friends")
         .select(`
           id,
-          user_id, 
+          user_id, // ID do remetente (Auth ID)
           status,
           created_at
         `)
@@ -131,21 +132,25 @@ export const InvitesTab = () => {
       if (friendRequests && friendRequests.length > 0) {
         const senderIds = friendRequests.map((f: any) => f.user_id);
 
+        // Passo B: Buscar os perfis. FILTRANDO E SELECIONANDO PELA COLUNA 'id' do profiles
         const { data: senderProfiles, error: profileError } = await supabase
             .from("profiles")
-            .select("auth_uid, full_name, avatar_url, id, display_name") 
-            .in("auth_uid", senderIds);
+            .select("id, full_name, avatar_url, display_name") 
+            .in("id", senderIds); // <--- FILTRO CORRIGIDO: usando 'id'
 
         if (profileError) throw profileError;
 
+        // Passo C: Mapear os perfis. USANDO 'id' COMO CHAVE
         const profileMap = new Map<string, ProfileData>();
         if (senderProfiles) {
              senderProfiles.forEach((p: any) => {
-                 profileMap.set(p.auth_uid, p as ProfileData);
+                 profileMap.set(p.id, p as ProfileData); // <--- MAPA CORRIGIDO: usando 'p.id'
              });
         }
         
+        // Passo D: Juntar as informações e criar os convites
         const friendInvites: FriendInvite[] = friendRequests.map((f: any) => {
+          // LIGAÇÃO CORRIGIDA: usa o user_id do convite para buscar o id do perfil
           const profile = profileMap.get(f.user_id); 
           
           const senderName = profile?.display_name || profile?.full_name || "Usuário";
@@ -158,7 +163,7 @@ export const InvitesTab = () => {
             from: {
               name: senderName,
               avatar: senderAvatar,
-              id: profile?.id || f.user_id,
+              id: profile?.id || f.user_id, 
             },
             createdAt: f.created_at,
             friendshipId: f.id,
@@ -188,7 +193,6 @@ export const InvitesTab = () => {
 
   const handleAccept = async (invite: Invite) => {
     try {
-      // Lógica de aceitar permanece a mesma
       if (invite.type === "tournament") {
         const { error } = await supabase
           .from("participants")
@@ -212,7 +216,6 @@ export const InvitesTab = () => {
 
   const handleDecline = async (invite: Invite) => {
     try {
-      // Lógica de recusar permanece a mesma
       if (invite.type === "tournament") {
         const { error } = await supabase
           .from("participants")
@@ -253,7 +256,7 @@ export const InvitesTab = () => {
           invites.map((invite) => (
             <Card key={invite.id} className="glass-card shadow-lg">
               {invite.type === "tournament" ? (
-                // LAYOUT DO CONVITE DE TORNEIO (AJUSTADO)
+                // LAYOUT DO CONVITE DE TORNEIO
                 <CardContent className="p-0">
                     
                     {/* Linha 1: Remetente e Título do Convite */}
@@ -319,7 +322,6 @@ export const InvitesTab = () => {
 
                     {/* Linha 4: Botões de Ação */}
                     <div className="p-4 flex gap-4">
-                        {/* Botão Aceitar com estilo gradiente */}
                         <Button 
                             className="flex-1 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 shadow-lg shadow-teal-500/30 transition-all duration-300" 
                             onClick={() => handleAccept(invite)}
@@ -327,7 +329,6 @@ export const InvitesTab = () => {
                             <Check className="w-4 h-4 mr-2" /> Aceitar Convite
                         </Button>
                         
-                        {/* Botão Recusar */}
                         <Button 
                             variant="outline" 
                             className="flex-1 border-destructive/50 text-destructive hover:bg-destructive/10 transition-all duration-300"
@@ -339,7 +340,7 @@ export const InvitesTab = () => {
                 </CardContent>
 
               ) : (
-                // LAYOUT DO CONVITE DE AMIZADE (AJUSTADO)
+                // LAYOUT DO CONVITE DE AMIZADE
                 <CardContent className="pt-6 pb-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -358,7 +359,6 @@ export const InvitesTab = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      {/* Botão Aceitar com estilo gradiente (mais compacto) */}
                       <Button 
                           className="w-24 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 shadow-lg shadow-teal-500/30 transition-all duration-300" 
                           onClick={() => handleAccept(invite)}
@@ -366,7 +366,6 @@ export const InvitesTab = () => {
                           Aceitar
                       </Button>
                       
-                      {/* Botão Recusar (mais compacto) */}
                       <Button 
                           variant="outline" 
                           className="w-24 border-destructive/50 text-destructive hover:bg-destructive/10 transition-all duration-300"
