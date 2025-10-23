@@ -133,7 +133,7 @@ export const InvitesTab = () => {
 
         const { data: senderProfiles, error: profileError } = await supabase
             .from("profiles")
-            .select(" full_name, avatar_url, id, display_name") 
+            .select("auth_uid, full_name, avatar_url, id, display_name") 
             .in("auth_uid", senderIds);
 
         if (profileError) throw profileError;
@@ -150,7 +150,7 @@ export const InvitesTab = () => {
           
           const senderName = profile?.display_name || profile?.full_name || "Usuário";
           const senderAvatar = profile?.avatar_url || 
-                               `https://api.dicebear.com/7.x/avataaars/svg?seed=${senderAvatar}`;
+                               `https://api.dicebear.com/7.x/avataaars/svg?seed=${senderName}`;
 
           return {
             id: `friend-${f.id}`,
