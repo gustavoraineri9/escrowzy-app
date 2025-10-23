@@ -1,10 +1,9 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, Users, DollarSign, Calendar, Check, X, Gamepad2, Landmark } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { Trophy, Users, DollarSign, Calendar, Check, X } from "lucide-react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,7 +22,7 @@ interface TournamentInvite {
     startDate: string;
   };
   createdAt: string;
-  participantId: string;
+  participantId: string; // ID na tabela participants
 }
 
 interface FriendInvite {
@@ -31,25 +30,21 @@ interface FriendInvite {
   type: "friend";
   from: { name: string; avatar: string; id: string };
   createdAt: string;
-  friendshipId: string;
+  friendshipId: string; // ID na tabela friends
 }
 
 type Invite = TournamentInvite | FriendInvite;
-
-interface ProfileData {
-    auth_uid: string;
-    id: string;
-    full_name: string | null;
-    display_name: string | null;
-    avatar_url: string | null;
-}
 
 export const InvitesTab = () => {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchInvites = useCallback(async () => {
+  useEffect(() => {
+    fetchInvites();
+  }, []);
+
+  const fetchInvites = async () => {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
@@ -63,126 +58,93 @@ export const InvitesTab = () => {
       const currentUserId = user.id;
       let fetchedInvites: Invite[] = [];
 
-      // 1. Fetch tournament invites
+      // Fetch tournament invites (pending participants)
       const { data: participantInvites, error: participantError } = await supabase
-        .from("participants")
+        .from("participants" as any)
         .select(`
           id,
           tournament_id,
           status,
           created_at,
-          tournaments!inner(id, title, game, entry_fee, prize_pool, max_participants, starts_at, owner_id)
+          tournaments (id, title, game, entry_fee, prize_pool, max_participants, starts_at, owner_id),
+          profiles (id, full_name, avatar_url)
         `)
         .eq("user_id", currentUserId)
         .eq("status", "pending");
 
       if (participantError) throw participantError;
 
-      if (participantInvites && participantInvites.length > 0) {
-        const ownerIds = participantInvites.map((p: any) => p.tournaments.owner_id);
-        const { data: ownerProfiles, error: ownerProfileError } = await supabase
-          .from("profiles")
-          .select("id, full_name, avatar_url, auth_uid, display_name")
-          .in("id", ownerIds);
+      for (const pInvite of participantInvites || []) {
+        const tournament = pInvite.tournaments as any;
+        const profile = pInvite.profiles as any;
 
-        if (ownerProfileError) throw ownerProfileError;
+        if (tournament && profile) {
+          const { data: currentParticipants } = await supabase
+            .from("participants" as any)
+            .select("id")
+            .eq("tournament_id", tournament.id);
 
-        const ownerProfileMap = new Map<string, ProfileData>();
-        ownerProfiles?.forEach((p: any) => ownerProfileMap.set(p.id, p as ProfileData));
-
-        for (const p of participantInvites) {
-          const tournament = p.tournaments as any;
-          const ownerProfile = ownerProfileMap.get(tournament.owner_id);
-
-          if (tournament && ownerProfile) {
-            // Fetch current participants count for each tournament
-            const { count: currentParticipantsCount, error: countError } = await supabase
-              .from("participants")
-              .select("id", { count: 'exact' })
-              .eq("tournament_id", tournament.id)
-              .eq("status", "active"); // Only count active participants
-
-            if (countError) console.error("Error fetching participant count:", countError);
-
-            fetchedInvites.push({
-              id: `tour-${p.id}`,
-              type: "tournament",
-              from: {
-                name: ownerProfile.display_name || ownerProfile.full_name || "Organizador",
-                avatar: ownerProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${ownerProfile.full_name}`,
-                id: ownerProfile.id,
-              },
-              tournament: {
-                id: tournament.id,
-                name: tournament.title,
-                game: tournament.game,
-                entryFee: tournament.entry_fee,
-                prizePool: tournament.prize_pool,
-                players: currentParticipantsCount || 0,
-                maxPlayers: tournament.max_participants,
-                startDate: tournament.starts_at,
-              },
-              createdAt: p.created_at,
-              participantId: p.id,
-            });
-          }
+          fetchedInvites.push({
+            id: pInvite.id, // participant ID
+            type: "tournament",
+            from: {
+              id: profile.id,
+              name: profile.full_name || "Usuário Desconhecido",
+              avatar: profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.full_name}`,
+            },
+            tournament: {
+              id: tournament.id,
+              name: tournament.title,
+              game: tournament.game,
+              entryFee: tournament.entry_fee,
+              prizePool: tournament.prize_pool,
+              players: currentParticipants?.length || 0,
+              maxPlayers: tournament.max_participants,
+              startDate: tournament.starts_at,
+            },
+            createdAt: pInvite.created_at,
+            participantId: pInvite.id,
+          });
         }
       }
 
-      // 2. Fetch friend requests
+      // Fetch friend requests (pending friends where current user is friend_id)
       const { data: friendRequests, error: friendError } = await supabase
-        .from("friends")
+        .from("friends" as any)
         .select(`
           id,
-          user_id, 
+          user_id,
           status,
-          created_at
+          created_at,
+          profiles (id, full_name, avatar_url)
         `)
         .eq("friend_id", currentUserId)
         .eq("status", "pending");
 
       if (friendError) throw friendError;
 
-      if (friendRequests && friendRequests.length > 0) {
-        const senderIds = friendRequests.map((f: any) => f.user_id);
-
-        const { data: senderProfiles, error: profileError } = await supabase
-            .from("profiles")
-            .select("id, full_name, avatar_url, auth_uid, display_name") 
-            .in("id", senderIds);
-
-        if (profileError) throw profileError;
-
-        const profileMap = new Map<string, ProfileData>();
-        senderProfiles?.forEach((p: any) => profileMap.set(p.id, p as ProfileData));
-        
-        const friendInvites: FriendInvite[] = friendRequests.map((f: any) => {
-          const profile = profileMap.get(f.user_id); 
-          
-          const senderName = profile?.display_name || profile?.full_name || "Usuário";
-          const senderAvatar = profile?.avatar_url || 
-                               `https://api.dicebear.com/7.x/avataaars/svg?seed=${senderName}`;
-
-          return {
-            id: `friend-${f.id}`,
+      for (const fRequest of friendRequests || []) {
+        const profile = fRequest.profiles as any;
+        if (profile) {
+          fetchedInvites.push({
+            id: fRequest.id, // friendship ID
             type: "friend",
             from: {
-              name: senderName,
-              avatar: senderAvatar,
-              id: profile?.id || f.user_id,
+              id: profile.id,
+              name: profile.full_name || "Usuário Desconhecido",
+              avatar: profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.full_name}`,
             },
-            createdAt: f.created_at,
-            friendshipId: f.id,
-          };
-        } );
-        fetchedInvites.push(...friendInvites);
+            createdAt: fRequest.created_at,
+            friendshipId: fRequest.id,
+          });
+        }
       }
 
+      // Sort invites by creation date (newest first)
       fetchedInvites.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setInvites(fetchedInvites);
-
     } catch (error) {
-      console.error("Erro ao carregar convites:", error);
+      console.error("Erro ao buscar convites:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os convites.",
@@ -191,31 +153,41 @@ export const InvitesTab = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast])  useEffect(() => {
-    fetchInvites();
-  }, [fetchInvites]);
+  };
 
   const handleAccept = async (invite: Invite) => {
     try {
       if (invite.type === "tournament") {
         const { error } = await supabase
-          .from("participants")
-          .update({ status: "active" }) 
+          .from("participants" as any)
+          .update({ status: "accepted" })
           .eq("id", invite.participantId);
+
         if (error) throw error;
-        toast({ title: "Sucesso", description: `Você aceitou o convite para o torneio ${invite.tournament.name}.` });
+        toast({
+          title: "Sucesso",
+          description: `Você aceitou o convite para o torneio ${invite.tournament.name}.`,
+        });
       } else if (invite.type === "friend") {
         const { error } = await supabase
-          .from("friends")
+          .from("friends" as any)
           .update({ status: "accepted" })
           .eq("id", invite.friendshipId);
+
         if (error) throw error;
-        toast({ title: "Sucesso", description: `Você aceitou a solicitação de amizade de ${invite.from.name}.` });
+        toast({
+          title: "Sucesso",
+          description: `Você aceitou a solicitação de amizade de ${invite.from.name}.`,
+        });
       }
-      fetchInvites();
+      fetchInvites(); // Recarregar convites
     } catch (error) {
       console.error("Erro ao aceitar convite:", error);
-      toast({ title: "Erro", description: "Não foi possível aceitar o convite.", variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: "Não foi possível aceitar o convite.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -223,23 +195,35 @@ export const InvitesTab = () => {
     try {
       if (invite.type === "tournament") {
         const { error } = await supabase
-          .from("participants")
+          .from("participants" as any)
           .delete()
           .eq("id", invite.participantId);
+
         if (error) throw error;
-        toast({ title: "Sucesso", description: `Você recusou o convite para o torneio ${invite.tournament.name}.` });
+        toast({
+          title: "Sucesso",
+          description: `Você recusou o convite para o torneio ${invite.tournament.name}.`,
+        });
       } else if (invite.type === "friend") {
         const { error } = await supabase
-          .from("friends")
+          .from("friends" as any)
           .delete()
           .eq("id", invite.friendshipId);
+
         if (error) throw error;
-        toast({ title: "Sucesso", description: `Você recusou a solicitação de amizade de ${invite.from.name}.` });
+        toast({
+          title: "Sucesso",
+          description: `Você recusou a solicitação de amizade de ${invite.from.name}.`,
+        });
       }
-      fetchInvites();
+      fetchInvites(); // Recarregar convites
     } catch (error) {
       console.error("Erro ao recusar convite:", error);
-      toast({ title: "Erro", description: "Não foi possível recusar o convite.", variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: "Não foi possível recusar o convite.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -299,7 +283,7 @@ export const InvitesTab = () => {
                   {/* Tournament Details */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-muted/30 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <Gamepad2 className="w-4 h-4 text-muted-foreground" />
+                      <Trophy className="w-4 h-4 text-muted-foreground" />
                       <div>
                         <p className="text-xs text-muted-foreground">Jogo</p>
                         <p className="text-sm font-semibold">{invite.tournament.game}</p>
@@ -332,32 +316,65 @@ export const InvitesTab = () => {
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => handleDecline(invite)}>
-                      <X className="w-4 h-4 mr-2" /> Recusar
+                  {/* Prize Pool Info */}
+                  <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="w-5 h-5 text-primary" />
+                      <span className="font-semibold">Premiação Total</span>
+                    </div>
+                    <span className="text-lg font-bold text-primary">R$ {invite.tournament.prizePool}</span>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      onClick={() => handleAccept(invite)}
+                      className="flex-1 gradient-primary"
+                    >
+                      <Check className="w-4 h-4 mr-2" />
+                      Aceitar Convite
                     </Button>
-                    <Button onClick={() => handleAccept(invite)}>
-                      <Check className="w-4 h-4 mr-2" /> Aceitar
+                    <Button
+                      onClick={() => handleDecline(invite)}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Recusar
                     </Button>
                   </div>
                 </CardContent>
               )}
 
               {invite.type === "friend" && (
-                <CardContent className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => handleDecline(invite)}>
-                    <X className="w-4 h-4 mr-2" /> Recusar
-                  </Button>
-                  <Button onClick={() => handleAccept(invite)}>
-                    <Check className="w-4 h-4 mr-2" /> Aceitar
-                  </Button>
+                <CardContent>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => handleAccept(invite)}
+                      className="flex-1 gradient-primary"
+                    >
+                      <Check className="w-4 h-4 mr-2" />
+                      Aceitar
+                    </Button>
+                    <Button
+                      onClick={() => handleDecline(invite)}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Recusar
+                    </Button>
+                  </div>
                 </CardContent>
               )}
             </Card>
           ))
         ) : (
-          <p className="text-muted-foreground text-center py-8">Nenhum convite pendente no momento.</p>
+          <Card className="glass-card p-8 text-center">
+            <Trophy className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">Nenhum convite pendente</h3>
+            <p className="text-muted-foreground">Quando você receber convites, eles aparecerão aqui.</p>
+          </Card>
         )}
       </div>
     </div>
