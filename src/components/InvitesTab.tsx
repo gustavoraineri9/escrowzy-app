@@ -101,7 +101,6 @@ export const InvitesTab = () => {
             game: p.tournaments.game,
             entryFee: p.tournaments.entry_fee,
             prizePool: p.tournaments.prize_pool,
-            // Simulação de jogadores atuais se não tiver o count no select
             players: Math.floor(p.tournaments.max_participants * 0.5), 
             maxPlayers: p.tournaments.max_participants,
             startDate: p.tournaments.starts_at,
@@ -118,7 +117,7 @@ export const InvitesTab = () => {
         .from("friends")
         .select(`
           id,
-          user_id, // Contém o Auth ID do remetente
+          user_id, 
           status,
           created_at
         `)
@@ -130,11 +129,11 @@ export const InvitesTab = () => {
       if (friendRequests && friendRequests.length > 0) {
         const senderIds = friendRequests.map((f: any) => f.user_id);
 
-        // CORREÇÃO: Busca por profiles.id, que contém o Auth ID
+        // Busca por profiles.id, que é o Auth ID
         const { data: senderProfiles, error: profileError } = await supabase
             .from("profiles")
             .select("id, full_name, avatar_url, display_name") 
-            .in("id", senderIds); // <--- FILTRO PELA COLUNA 'id'
+            .in("id", senderIds); // Filtro pela coluna 'id'
 
         if (profileError) throw profileError;
 
@@ -378,7 +377,6 @@ export const InvitesTab = () => {
                           Recusar
                       </Button>
                     </div>
-                  </div>
                 </CardContent>
               )}
             </Card>
