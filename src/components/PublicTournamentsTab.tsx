@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, DollarSign, Clock } from "lucide-react";
-import Link from "next/link"; // Assumindo Next.js para o roteamento
+import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -126,8 +126,8 @@ export const PublicTournamentsTab = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {tournaments.length > 0 ? (
           tournaments.map((tournament) => (
-            <Link key={tournament.id} href={`/tournament/${tournament.id}`} passHref legacyBehavior>
-                    <Card component="a" className="glass-card hover:shadow-xl transition-all cursor-pointer">
+            <Link key={tournament.id} to={`/tournament/${tournament.id}`}>
+              <Card className="glass-card hover:shadow-xl transition-all cursor-pointer">
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
