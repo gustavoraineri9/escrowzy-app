@@ -89,8 +89,8 @@ export const InvitesTab = () => {
             type: "tournament",
             from: {
               id: profile.id,
-              name: profile.full_name || "Usuário Desconhecido",
-              avatar: profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.full_name}`,
+              name: profile.full_name || "Usuário",
+              avatar: profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.avatar_url}`,
             },
             tournament: {
               id: tournament.id,
@@ -131,8 +131,8 @@ export const InvitesTab = () => {
             type: "friend",
             from: {
               id: profile.id,
-              name: profile.full_name || "Usuário Desconhecido",
-              avatar: profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.full_name}`,
+              name: profile.full_name || "Usuário",
+              avatar: profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.avatar_url}`,
             },
             createdAt: fRequest.created_at,
             friendshipId: fRequest.id,
