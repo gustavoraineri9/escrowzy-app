@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AddFriendDialog } from "./AddFriendDialog";
 
+// Interface para tipagem dos dados dos amigos
 interface Friend {
   id: string;
   username: string;
@@ -41,6 +42,9 @@ export const FriendsTab = () => {
 
       const currentUserId = user.id;
 
+      // ESTE É O BLOCO CRÍTICO ONDE O ERRO OCORRIA
+      // Se as Chaves Estrangeiras (FKs) estiverem corretas no Supabase (friends -> profiles),
+      // esta query irá funcionar.
       const { data: friendships, error } = await supabase
         .from("friends")
         .select(`
@@ -56,9 +60,12 @@ export const FriendsTab = () => {
 
       if (error) throw error;
 
+      // Formatação dos dados mockados
       const formattedFriends: Friend[] = (friendships || []).map((fs: any) => {
+        // Determina qual perfil é o amigo (o que não é o usuário atual)
         const friendProfile = fs.user_id === currentUserId ? fs.profiles_friend : fs.profiles_user;
 
+        // Dados mockados para exibição (vitórias, saldo, etc.)
         const mockYourWins = Math.floor(Math.random() * 10) + 1;
         const mockTheirWins = Math.floor(Math.random() * 10) + 1;
         const mockBalance = (Math.random() * 200 - 100);
@@ -68,6 +75,7 @@ export const FriendsTab = () => {
         return {
           id: friendProfile.id,
           username: friendProfile.full_name || "Usuário Desconhecido",
+          // Tenta usar a URL do avatar, se não tiver, usa um gerador de avatar (dicebear)
           avatar: friendProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friendProfile.full_name}`,
           yourWins: mockYourWins,
           theirWins: mockTheirWins,
@@ -80,6 +88,7 @@ export const FriendsTab = () => {
       setFriends(formattedFriends);
     } catch (error) {
       console.error("Erro ao buscar amigos:", error);
+      // O erro do Supabase 'PGRST200' será capturado aqui
       toast({
         title: "Erro",
         description: "Não foi possível carregar sua lista de amigos.",
@@ -94,6 +103,7 @@ export const FriendsTab = () => {
     fetchFriends();
   }, [fetchFriends]);
 
+  // Funções de formatação e estilo
   const getBalanceColor = (balance: number) => {
     if (balance > 0) return "text-success";
     if (balance < 0) return "text-destructive";
@@ -101,7 +111,7 @@ export const FriendsTab = () => {
   };
 
   const formatBalance = (balance: number) => {
-    const sign = balance > 0 ? "+" : "-";
+    const sign = balance >= 0 ? "+" : "-";
     return `${sign} R$ ${Math.abs(balance).toFixed(2)}`;
   };
 
@@ -117,6 +127,7 @@ export const FriendsTab = () => {
     );
   }
 
+  // Componente de Renderização
   return (
     <div className="space-y-6">
       <div>
@@ -134,7 +145,8 @@ export const FriendsTab = () => {
             className="pl-10"
           />
         </div>
-        <AddFriendDialog onFriendAdded={fetchFriends} />
+        {/* Assumindo que AddFriendDialog está definido e usa fetchFriends */}
+        <AddFriendDialog onFriendAdded={fetchFriends} /> 
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
