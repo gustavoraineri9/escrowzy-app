@@ -111,7 +111,7 @@ export const InvitesTab = () => {
         fetchedInvites.push(...tournamentInvites);
       }
 
-      // 2. Fetch friend requests (SOLUÇÃO EM DUAS ETAPAS CORRIGIDA)
+      // 2. Fetch friend requests (SOLUÇÃO EM DUAS ETAPAS)
       
       const { data: friendRequests, error: friendError } = await supabase
         .from("friends")
@@ -190,7 +190,7 @@ export const InvitesTab = () => {
 
   const handleAccept = async (invite: Invite) => {
     try {
-      // Lógica de aceitar permanece a mesma
+      // Lógica de aceitar
       if (invite.type === "tournament") {
         const { error } = await supabase
           .from("participants")
@@ -214,7 +214,7 @@ export const InvitesTab = () => {
 
   const handleDecline = async (invite: Invite) => {
     try {
-      // Lógica de recusar permanece a mesma
+      // Lógica de recusar
       if (invite.type === "tournament") {
         const { error } = await supabase
           .from("participants")
@@ -255,7 +255,7 @@ export const InvitesTab = () => {
           invites.map((invite) => (
             <Card key={invite.id} className="glass-card shadow-lg">
               {invite.type === "tournament" ? (
-                // LAYOUT DO CONVITE DE TORNEIO (AJUSTADO)
+                // LAYOUT DO CONVITE DE TORNEIO
                 <CardContent className="p-0">
                     
                     {/* Linha 1: Remetente e Título do Convite */}
@@ -341,7 +341,7 @@ export const InvitesTab = () => {
                 </CardContent>
 
               ) : (
-                // LAYOUT DO CONVITE DE AMIZADE (AJUSTADO)
+                // LAYOUT DO CONVITE DE AMIZADE
                 <CardContent className="pt-6 pb-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -377,6 +377,7 @@ export const InvitesTab = () => {
                           Recusar
                       </Button>
                     </div>
+                  </div>
                 </CardContent>
               )}
             </Card>
