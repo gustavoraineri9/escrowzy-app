@@ -1,66 +1,69 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, Users, DollarSign, Calendar, Check, X, Gamepad2, Landmark } from "lucide-react"; // Importei ícones adicionais
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import React, { useCallback, useEffect, useState } from "react";
+import { supabase } from "../integrations/supabase/client";
+import { useAuth } from "../integrations/supabase/auth";
+import { toast } from "./ui/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Calendar, Check, DollarSign, Gamepad2, Users, X } from "lucide-react";
 
-interface TournamentInvite {
+interface ProfileData {
+  auth_uid: string;
   id: string;
-  type: "tournament";
-  from: { name: string; avatar: string; id: string };
-  tournament: {
-    id: string;
+  full_name: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
+interface Tournament {
+  id: string;
+  name: string;
+  game: string;
+  entryFee: number;
+  prizePool: number;
+  players: number;
+  maxPlayers: number;
+  startDate: string;
+}
+
+interface Invite {
+  id: string;
+  type: "tournament" | "friend";
+  from: {
     name: string;
-    game: string;
-    entryFee: number;
-    prizePool: number;
-    players: number;
-    maxPlayers: number;
-    startDate: string;
+    avatar: string;
+    id: string;
   };
   createdAt: string;
+}
+
+interface TournamentInvite extends Invite {
+  type: "tournament";
+  tournament: Tournament;
   participantId: string;
 }
 
-interface FriendInvite {
-  id: string;
+interface FriendInvite extends Invite {
   type: "friend";
-  from: { name: string; avatar: string; id: string };
-  createdAt: string;
   friendshipId: string;
 }
 
-type Invite = TournamentInvite | FriendInvite;
-
-interface ProfileData {
-    auth_uid: string;
-    id: string;
-    full_name: string | null;
-    display_name: string | null;
-    avatar_url: string | null;
-}
-
-export const InvitesTab = () => {
+const InvitesTab: React.FC = () => {
+  const { user } = useAuth();
+  const currentUserId = user?.id;
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   const fetchInvites = useCallback(async () => {
+    if (!currentUserId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        setInvites([]);
-        setLoading(false);
-        return;
-      }
-
-      const currentUserId = user.id;
-      let fetchedInvites: Invite[] = [];
+      const fetchedInvites: Invite[] = [];
 
       // 1. Fetch tournament invites
       const { data: participantInvites, error: participantError } = await supabase
@@ -70,51 +73,65 @@ export const InvitesTab = () => {
           tournament_id,
           status,
           joined_at,
-          tournaments!inner(
-            id, 
-            title, 
-            game, 
-            entry_fee, 
-            prize_pool, 
-            max_participants, 
-            starts_at, 
-            owner_id, 
-            owner_profile:profiles!owner_id(id, full_name, avatar_url)
-          )
+          tournaments!inner(id, title, game, entry_fee, prize_pool, max_participants, starts_at, owner_id)
         `)
         .eq("user_id", currentUserId)
         .eq("status", "pending");
 
       if (participantError) throw participantError;
 
-      if (participantInvites) {
-        const tournamentInvites: TournamentInvite[] = participantInvites.map((p: any) => ({
-          id: `tour-${p.id}`,
-          type: "tournament",
-          from: {
-            name: p.tournaments.owner_profile.full_name || "Organizador",
-            avatar: p.tournaments.owner_profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.tournaments.owner_profile.full_name}`,
-            id: p.tournaments.owner_profile.id,
-          },
-          tournament: {
-            id: p.tournaments.id,
-            name: p.tournaments.title,
-            game: p.tournaments.game,
-            entryFee: p.tournaments.entry_fee,
-            prizePool: p.tournaments.prize_pool,
-            // Simulação de jogadores atuais se não tiver o count no select
-            players: Math.floor(p.tournaments.max_participants * 0.5), 
-            maxPlayers: p.tournaments.max_participants,
-            startDate: p.tournaments.starts_at,
-          },
-          createdAt: p.joined_at,
-          participantId: p.id,
-        } ));
-        fetchedInvites.push(...tournamentInvites);
+      if (participantInvites && participantInvites.length > 0) {
+        const ownerIds = participantInvites.map((p: any) => p.tournaments.owner_id);
+        const { data: ownerProfiles, error: ownerProfileError } = await supabase
+          .from("profiles")
+          .select("id, full_name, avatar_url, auth_uid, display_name")
+          .in("auth_uid", ownerIds); // Corrected to use auth_uid
+
+        if (ownerProfileError) throw ownerProfileError;
+
+        const ownerProfileMap = new Map<string, ProfileData>();
+        ownerProfiles?.forEach((p: any) => ownerProfileMap.set(p.auth_uid, p as ProfileData)); // Corrected to use auth_uid
+
+        for (const p of participantInvites) {
+          const tournament = p.tournaments as any;
+          const ownerProfile = ownerProfileMap.get(tournament.owner_id); // tournament.owner_id is auth_uid
+
+          if (tournament && ownerProfile) {
+            // Fetch current participants count for each tournament
+            const { count: currentParticipantsCount, error: countError } = await supabase
+              .from("participants")
+              .select("id", { count: 'exact' })
+              .eq("tournament_id", tournament.id)
+              .eq("status", "active"); // Only count active participants
+
+            if (countError) console.error("Error fetching participant count:", countError);
+
+            fetchedInvites.push({
+              id: `tour-${p.id}`,
+              type: "tournament",
+              from: {
+                name: ownerProfile.display_name || ownerProfile.full_name || "Organizador",
+                avatar: ownerProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${ownerProfile.full_name}`,
+                id: ownerProfile.id,
+              },
+              tournament: {
+                id: tournament.id,
+                name: tournament.title,
+                game: tournament.game,
+                entryFee: tournament.entry_fee,
+                prizePool: tournament.prize_pool,
+                players: currentParticipantsCount || 0,
+                maxPlayers: tournament.max_participants,
+                startDate: tournament.starts_at,
+              },
+              createdAt: p.joined_at,
+              participantId: p.id,
+            });
+          }
+        }
       }
 
-      // 2. Fetch friend requests (SOLUÇÃO EM DUAS ETAPAS)
-      
+      // 2. Fetch friend requests
       const { data: friendRequests, error: friendError } = await supabase
         .from("friends")
         .select(`
@@ -133,20 +150,16 @@ export const InvitesTab = () => {
 
         const { data: senderProfiles, error: profileError } = await supabase
             .from("profiles")
-            .select("auth_uid, full_name, avatar_url, id, display_name") 
-            .in("auth_uid", senderIds);
+            .select("id, full_name, avatar_url, auth_uid, display_name") 
+            .in("auth_uid", senderIds); // Corrected to use auth_uid
 
         if (profileError) throw profileError;
 
         const profileMap = new Map<string, ProfileData>();
-        if (senderProfiles) {
-             senderProfiles.forEach((p: any) => {
-                 profileMap.set(p.auth_uid, p as ProfileData);
-             });
-        }
+        senderProfiles?.forEach((p: any) => profileMap.set(p.auth_uid, p as ProfileData)); // Corrected to use auth_uid
         
         const friendInvites: FriendInvite[] = friendRequests.map((f: any) => {
-          const profile = profileMap.get(f.user_id); 
+          const profile = profileMap.get(f.user_id); // f.user_id is auth_uid
           
           const senderName = profile?.display_name || profile?.full_name || "Usuário";
           const senderAvatar = profile?.avatar_url || 
@@ -180,7 +193,7 @@ export const InvitesTab = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, currentUserId]);
 
   useEffect(() => {
     fetchInvites();
@@ -188,21 +201,21 @@ export const InvitesTab = () => {
 
   const handleAccept = async (invite: Invite) => {
     try {
-      // Lógica de aceitar permanece a mesma
       if (invite.type === "tournament") {
         const { error } = await supabase
           .from("participants")
           .update({ status: "active" }) 
           .eq("id", invite.participantId);
         if (error) throw error;
+        toast({ title: "Sucesso", description: `Você aceitou o convite para o torneio ${invite.tournament.name}.` });
       } else if (invite.type === "friend") {
         const { error } = await supabase
           .from("friends")
           .update({ status: "accepted" })
           .eq("id", invite.friendshipId);
         if (error) throw error;
+        toast({ title: "Sucesso", description: `Você aceitou a solicitação de amizade de ${invite.from.name}.` });
       }
-      toast({ title: "Sucesso", description: "Convite aceito!" });
       fetchInvites();
     } catch (error) {
       console.error("Erro ao aceitar convite:", error);
@@ -212,21 +225,21 @@ export const InvitesTab = () => {
 
   const handleDecline = async (invite: Invite) => {
     try {
-      // Lógica de recusar permanece a mesma
       if (invite.type === "tournament") {
         const { error } = await supabase
           .from("participants")
           .delete()
           .eq("id", invite.participantId);
         if (error) throw error;
+        toast({ title: "Sucesso", description: `Você recusou o convite para o torneio ${invite.tournament.name}.` });
       } else if (invite.type === "friend") {
         const { error } = await supabase
           .from("friends")
           .delete()
           .eq("id", invite.friendshipId);
         if (error) throw error;
+        toast({ title: "Sucesso", description: `Você recusou a solicitação de amizade de ${invite.from.name}.` });
       }
-      toast({ title: "Sucesso", description: "Convite recusado." });
       fetchInvites();
     } catch (error) {
       console.error("Erro ao recusar convite:", error);
@@ -246,148 +259,113 @@ export const InvitesTab = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold mb-2">Convites</h2>
-        <p className="text-muted-foreground">Você tem {invites.length} convites pendentes</p>
+        <p className="text-muted-foreground">
+          Você tem {invites.length} {invites.length === 1 ? "convite" : "convites"} pendentes
+        </p>
       </div>
-      <div className="space-y-4">
+
+      <div className="grid gap-4">
         {invites.length > 0 ? (
           invites.map((invite) => (
-            <Card key={invite.id} className="glass-card shadow-lg">
-              {invite.type === "tournament" ? (
-                // LAYOUT DO CONVITE DE TORNEIO (AJUSTADO)
-                <CardContent className="p-0">
-                    
-                    {/* Linha 1: Remetente e Título do Convite */}
-                    <div className="p-4 flex items-center gap-3 border-b border-gray-100/10">
-                        <Avatar className="w-10 h-10">
-                            <AvatarImage src={invite.from.avatar} />
-                            <AvatarFallback>{invite.from.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 text-sm">
-                            <p className="font-semibold text-foreground">{invite.from.name} convidou você para participar de <span className="text-primary font-bold">"{invite.tournament.name}"</span>.</p>
-                        </div>
-                        <Badge className="bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30">Campeonato</Badge>
+            <Card key={invite.id} className="glass-card hover:shadow-lg transition-all">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-4 flex-1">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={invite.from.avatar} alt={invite.from.name} />
+                      <AvatarFallback>
+                        {invite.from.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <CardTitle className="text-lg mb-1">
+                        {invite.type === "tournament" ? "Convite para Campeonato" : "Solicitação de Amizade"}
+                      </CardTitle>
+                      <CardDescription>
+                        {invite.from.name}{" "}
+                        {invite.type === "tournament"
+                          ? `convidou você para participar de "${(invite as TournamentInvite).tournament?.name}"`
+                          : "quer ser seu amigo"}
+                      </CardDescription>
                     </div>
+                  </div>
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                    {invite.type === "tournament" ? "Campeonato" : "Amizade"}
+                  </Badge>
+                </div>
+              </CardHeader>
 
-                    {/* Linha 2: Detalhes do Torneio (Jogo, Participantes, Taxa, Início) */}
-                    <div className="grid grid-cols-4 gap-4 p-4 text-sm border-b border-gray-100/10">
-                        
-                        {/* Jogo */}
-                        <div className="flex items-center gap-2">
-                            <Gamepad2 className="w-5 h-5 text-muted-foreground/80" />
-                            <div>
-                                <p className="text-xs text-muted-foreground">Jogo</p>
-                                <p className="font-medium">{invite.tournament.game}</p>
-                            </div>
-                        </div>
-
-                        {/* Participantes */}
-                        <div className="flex items-center gap-2">
-                            <Users className="w-5 h-5 text-muted-foreground/80" />
-                            <div>
-                                <p className="text-xs text-muted-foreground">Participantes</p>
-                                <p className="font-medium">{invite.tournament.players}/{invite.tournament.maxPlayers}</p>
-                            </div>
-                        </div>
-
-                        {/* Taxa */}
-                        <div className="flex items-center gap-2">
-                            <DollarSign className="w-5 h-5 text-muted-foreground/80" />
-                            <div>
-                                <p className="text-xs text-muted-foreground">Taxa</p>
-                                <p className="font-medium text-emerald-500">R$ {invite.tournament.entryFee.toFixed(2)}</p>
-                            </div>
-                        </div>
-
-                        {/* Início */}
-                        <div className="flex items-center gap-2">
-                            <Calendar className="w-5 h-5 text-muted-foreground/80" />
-                            <div>
-                                <p className="text-xs text-muted-foreground">Início</p>
-                                <p className="font-medium">{new Date(invite.tournament.startDate).toLocaleDateString()}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Linha 3: Premiação Total */}
-                    <div className="p-4 flex items-center justify-between bg-muted/20 border-b border-gray-100/10">
-                        <div className="flex items-center gap-2">
-                             <Trophy className="w-5 h-5 text-yellow-500" />
-                            <p className="text-sm font-semibold">Premiação Total</p>
-                        </div>
-                        <p className="text-lg font-bold text-emerald-500">R$ {invite.tournament.prizePool.toFixed(2)}</p>
-                    </div>
-
-                    {/* Linha 4: Botões de Ação */}
-                    <div className="p-4 flex gap-4">
-                        {/* Botão Aceitar com estilo gradiente */}
-                        <Button 
-                            className="flex-1 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 shadow-lg shadow-teal-500/30 transition-all duration-300" 
-                            onClick={() => handleAccept(invite)}
-                        >
-                            <Check className="w-4 h-4 mr-2" /> Aceitar Convite
-                        </Button>
-                        
-                        {/* Botão Recusar */}
-                        <Button 
-                            variant="outline" 
-                            className="flex-1 border-destructive/50 text-destructive hover:bg-destructive/10 transition-all duration-300"
-                            onClick={() => handleDecline(invite)}
-                        >
-                            <X className="w-4 h-4 mr-2" /> Recusar
-                        </Button>
-                    </div>
-                </CardContent>
-
-              ) : (
-                // LAYOUT DO CONVITE DE AMIZADE (AJUSTADO)
-                <CardContent className="pt-6 pb-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <Avatar className="w-12 h-12">
-                        <AvatarImage src={invite.from.avatar} />
-                        <AvatarFallback>{invite.from.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
+              {invite.type === "tournament" && invite.tournament && (
+                <CardContent className="space-y-4">
+                  {/* Tournament Details */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Gamepad2 className="w-4 h-4 text-muted-foreground" />
                       <div>
-                        <p className="text-lg font-semibold mb-1 flex items-center gap-2">
-                           Solicitação de Amizade
-                           <Badge className="bg-blue-500/20 text-blue-500 hover:bg-blue-500/30 text-xs">Amizade</Badge>
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          <span className="font-medium text-foreground">{invite.from.name}</span> quer ser seu amigo
+                        <p className="text-xs text-muted-foreground">Jogo</p>
+                        <p className="text-sm font-semibold">{invite.tournament.game}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Participantes</p>
+                        <p className="text-sm font-semibold">
+                          {invite.tournament.players}/{invite.tournament.maxPlayers}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      {/* Botão Aceitar com estilo gradiente (mais compacto) */}
-                      <Button 
-                          className="w-24 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 shadow-lg shadow-teal-500/30 transition-all duration-300" 
-                          onClick={() => handleAccept(invite)}
-                      >
-                          Aceitar
-                      </Button>
-                      
-                      {/* Botão Recusar (mais compacto) */}
-                      <Button 
-                          variant="outline" 
-                          className="w-24 border-destructive/50 text-destructive hover:bg-destructive/10 transition-all duration-300"
-                          onClick={() => handleDecline(invite)}
-                      >
-                          Recusar
-                      </Button>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Taxa</p>
+                        <p className="text-sm font-semibold text-primary">R$ {invite.tournament.entryFee}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Início</p>
+                        <p className="text-sm font-semibold">
+                          {new Date(invite.tournament.startDate).toLocaleDateString()}
+                        </p>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Actions */}
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => handleDecline(invite)}>
+                      <X className="w-4 h-4 mr-2" /> Recusar
+                    </Button>
+                    <Button onClick={() => handleAccept(invite)}>
+                      <Check className="w-4 h-4 mr-2" /> Aceitar
+                    </Button>
+                  </div>
+                </CardContent>
+              )}
+
+              {invite.type === "friend" && (
+                <CardContent className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => handleDecline(invite)}>
+                    <X className="w-4 h-4 mr-2" /> Recusar
+                  </Button>
+                  <Button onClick={() => handleAccept(invite)}>
+                    <Check className="w-4 h-4 mr-2" /> Aceitar
+                  </Button>
                 </CardContent>
               )}
             </Card>
           ))
         ) : (
-          <Card className="glass-card p-8 text-center">
-            <Trophy className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">Nenhum convite pendente</h3>
-            <p className="text-muted-foreground">Quando você receber convites, eles aparecerão aqui.</p>
-          </Card>
+          <p className="text-muted-foreground text-center py-8">Nenhum convite pendente no momento.</p>
         )}
       </div>
     </div>
   );
 };
+
+export default InvitesTab;
