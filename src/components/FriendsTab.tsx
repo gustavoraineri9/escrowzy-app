@@ -38,7 +38,7 @@ export const FriendsTab = () => {
       setCarregandoAmigos(true);
       try {
         const amigosBuscados = await buscarAmigos(user.id);
-        const idsAmigos = amigosBuscados.map(a => a.id_amigo);
+  const idsAmigos = amigosBuscados.map(a => a.friend_id);
         
         // Busca as estatísticas de confrontos para todos os amigos em paralelo
         const promessasEstatisticas = idsAmigos.map(idAmigo => buscarEstatisticasConfrontoDireto(user.id, idAmigo));
@@ -51,7 +51,7 @@ export const FriendsTab = () => {
 
         const amigosComEstatisticas: AmigoExibicao[] = amigosBuscados.map(a => ({
           ...a,
-          estatisticas: mapaEstatisticas.get(a.id_amigo) || null,
+          estatisticas: mapaEstatisticas.get(a.friend_id) || null,
           online: Math.random() > 0.5, // Mock de status online
         }));
         
@@ -167,7 +167,7 @@ export const FriendsTab = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {amigos.length === 0 && !carregandoAmigos ? (
+              {amigos.length === 0 && !carregandoAmigos ? (
           <Card className="glass-card p-8 text-center col-span-full">
             <p className="text-muted-foreground">Você ainda não tem amigos. Adicione alguém!</p>
           </Card>
@@ -188,7 +188,7 @@ export const FriendsTab = () => {
               <Card 
                 key={amigo.id} 
                 className="glass-card hover:shadow-xl transition-all cursor-pointer animate-fade-in hover-scale"
-                onClick={() => navigate(`/friend/${amigo.id_amigo}`)}
+                onClick={() => navigate(`/friend/${amigo.friend_id}`)}
               >
                 <CardContent className="pt-6 pb-6 space-y-4">
                   {/* Seção Superior: Placar do Confronto */}
@@ -229,9 +229,9 @@ export const FriendsTab = () => {
                     {/* Avatar do Amigo */}
                     <div className="relative">
                       <Avatar className="w-14 h-14 border-2 border-border">
-                        <AvatarImage src={amigo.perfis?.url_avatar} />
+                        <AvatarImage src={amigo.perfis?.avatar_url} />
                         <AvatarFallback className="bg-muted font-bold">
-                          {amigo.perfis?.nome_exibicao?.substring(0, 2).toUpperCase() || amigo.perfis?.nome_completo?.substring(0, 2).toUpperCase()}
+                          {amigo.perfis?.display_name?.substring(0, 2).toUpperCase() || amigo.perfis?.full_name?.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       {amigo.online && (
@@ -243,7 +243,7 @@ export const FriendsTab = () => {
                   {/* Seção Central: Identificação e Status */}
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <h3 className="font-bold text-lg">{amigo.perfis?.nome_exibicao || amigo.perfis?.nome_completo}</h3>
+                      <h3 className="font-bold text-lg">{amigo.perfis?.display_name || amigo.perfis?.full_name}</h3>
                       {amigo.online && (
                         <Badge className="bg-success/10 text-success border-success/20 text-xs" variant="outline">
                           Online
