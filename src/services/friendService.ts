@@ -1,71 +1,71 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export interface Friend {
+export interface Amigo {
   id: string;
-  user_id: string;
-  friend_id: string;
-  created_at: string;
-  profiles: {
+  id_usuario: string;
+  id_amigo: string;
+  criado_em: string;
+  perfis: {
     id: string;
     auth_uid: string;
     email: string;
-    full_name: string;
-    display_name: string;
-    avatar_url?: string;
+    nome_completo: string;
+    nome_exibicao: string;
+    url_avatar?: string;
   } | null;
 }
 
-export interface FriendRequest {
+export interface SolicitacaoAmizade {
   id: string;
-  sender_id: string;
-  receiver_id: string;
-  status: 'pending' | 'accepted' | 'declined';
-  created_at: string;
-  updated_at: string;
-  sender_profile: {
+  id_remetente: string;
+  id_destinatario: string;
+  status: 'pendente' | 'aceita' | 'recusada';
+  criado_em: string;
+  atualizado_em: string;
+  perfil_remetente: {
     id: string;
     auth_uid: string;
     email: string;
-    full_name: string;
-    display_name: string;
-    avatar_url?: string;
+    nome_completo: string;
+    nome_exibicao: string;
+    url_avatar?: string;
   } | null;
-  receiver_profile: {
+  perfil_destinatario: {
     id: string;
     auth_uid: string;
     email: string;
-    full_name: string;
-    display_name: string;
-    avatar_url?: string;
+    nome_completo: string;
+    nome_exibicao: string;
+    url_avatar?: string;
   } | null;
 }
 
-export interface HeadToHeadStats {
-  user_a_id: string;
-  user_b_id: string;
-  wins_a: number;
-  wins_b: number;
-  balance_a: number;
-  balance_b: number;
-  win_streak_a: number;
-  win_streak_b: number;
-  updated_at: string;
+export interface EstatisticasConfrontoDireto {
+  id_usuario_a: string;
+  id_usuario_b: string;
+  vitorias_a: number;
+  vitorias_b: number;
+  saldo_a: number;
+  saldo_b: number;
+  sequencia_vitorias_a: number;
+  sequencia_vitorias_b: number;
+  atualizado_em: string;
 }
 
-export async function getHeadToHeadStats(userId: string, friendId: string): Promise<HeadToHeadStats | null> {
+export async function buscarEstatisticasConfrontoDireto(idUsuario: string, idAmigo: string): Promise<EstatisticasConfrontoDireto | null> {
   // Garante que a ordem dos IDs seja sempre a mesma (ID menor primeiro)
-  const userA = userId < friendId ? userId : friendId;
-  const userB = userId < friendId ? friendId : userId;
+  const usuarioA = idUsuario < idAmigo ? idUsuario : idAmigo;
+  const usuarioB = idUsuario < idAmigo ? idAmigo : idUsuario;
 
   const { data, error } = await supabase
     .from("head_to_head_stats")
     .select("*")
-    .eq("user_a_id", userA)
-    .eq("user_b_id", userB)
+    .eq("user_a_id", usuarioA)
+    .eq("user_b_id", usuarioB)
     .single();
 
   if (error && error.code !== 'PGRST116') { // PGRST116 é "No rows found"
-    console.error("Erro ao buscar estatísticas Head-to-Head:", error);
+    console.error("Erro ao buscar estatísticas de Confronto Direto:", error);
     return null;
   }
 
@@ -73,35 +73,38 @@ export async function getHeadToHeadStats(userId: string, friendId: string): Prom
     return null;
   }
 
-  // Mapeia os resultados para o usuário solicitante (userId)
-  const isUserA = userId === userA;
+  // Mapeia os resultados para o usuário solicitante (idUsuario)
+  const isUsuarioA = idUsuario === usuarioA;
   
   // Retorna as estatísticas no contexto do usuário solicitante (VC vs Ele)
   return {
-    user_a_id: data.user_a_id,
-    user_b_id: data.user_b_id,
+    id_usuario_a: data.user_a_id,
+    id_usuario_b: data.user_b_id,
     // Vitórias do usuário solicitante (VC)
-    wins_a: isUserA ? data.wins_a : data.wins_b,
+    vitorias_a: isUsuarioA ? data.wins_a : data.wins_b,
     // Vitórias do amigo (Ele)
-    wins_b: isUserA ? data.wins_b : data.wins_a,
+    vitorias_b: isUsuarioA ? data.wins_b : data.wins_a,
     // Saldo do usuário solicitante (VC)
-    balance_a: isUserA ? data.balance_a : data.balance_b,
+    saldo_a: isUsuarioA ? data.balance_a : data.balance_b,
     // Saldo do amigo (Ele) - o saldo do amigo é o oposto do seu
-    balance_b: isUserA ? data.balance_b : data.balance_a,
+    saldo_b: isUsuarioA ? data.balance_b : data.balance_a,
     // Sequência de vitórias do usuário solicitante (VC)
-    win_streak_a: isUserA ? data.win_streak_a : data.win_streak_b,
+    sequencia_vitorias_a: isUsuarioA ? data.win_streak_a : data.win_streak_b,
     // Sequência de vitórias do amigo (Ele)
-    win_streak_b: isUserA ? data.win_streak_b : data.win_streak_a,
-    updated_at: data.updated_at,
-  } as HeadToHeadStats;
+    sequencia_vitorias_b: isUsuarioA ? data.win_streak_b : data.win_streak_a,
+    atualizado_em: data.updated_at,
+  } as EstatisticasConfrontoDireto;
 }
 
-export async function getFriends(userId: string): Promise<Friend[]> {
+export async function buscarAmigos(idUsuario: string): Promise<Amigo[]> {
   const { data, error } = await supabase
     .from("friends")
     .select(`
-      *,
-      profiles:friend_id(
+      id,
+      user_id,
+      friend_id,
+      created_at,
+      perfis:friend_id(
         id,
         auth_uid,
         email,
@@ -110,21 +113,26 @@ export async function getFriends(userId: string): Promise<Friend[]> {
         avatar_url
       )
     `)
-    .eq("user_id", userId);
+    .eq("user_id", idUsuario);
 
   if (error) {
     console.error("Erro ao buscar amigos:", error);
     return [];
   }
-  return data as Friend[];
+  return data as Amigo[];
 }
 
-export async function getPendingFriendRequests(userId: string): Promise<FriendRequest[]> {
-  const { data: sentRequests, error: sentError } = await supabase
+export async function buscarSolicitacoesPendentes(idUsuario: string): Promise<SolicitacaoAmizade[]> {
+  const { data: solicitacoesEnviadas, error: erroEnviadas } = await supabase
     .from("friend_requests")
     .select(`
-      *,
-      sender_profile:sender_id(
+      id,
+      sender_id,
+      receiver_id,
+      status,
+      created_at,
+      updated_at,
+      perfil_remetente:sender_id(
         id,
         auth_uid,
         email,
@@ -132,7 +140,7 @@ export async function getPendingFriendRequests(userId: string): Promise<FriendRe
         display_name,
         avatar_url
       ),
-      receiver_profile:receiver_id(
+      perfil_destinatario:receiver_id(
         id,
         auth_uid,
         email,
@@ -141,19 +149,24 @@ export async function getPendingFriendRequests(userId: string): Promise<FriendRe
         avatar_url
       )
     `)
-    .eq("sender_id", userId)
+    .eq("sender_id", idUsuario)
     .eq("status", "pending");
 
-  if (sentError) {
-    console.error("Erro ao buscar solicitações de amizade enviadas:", sentError);
+  if (erroEnviadas) {
+    console.error("Erro ao buscar solicitações de amizade enviadas:", erroEnviadas);
     return [];
   }
 
-  const { data: receivedRequests, error: receivedError } = await supabase
+  const { data: solicitacoesRecebidas, error: erroRecebidas } = await supabase
     .from("friend_requests")
     .select(`
-      *,
-      sender_profile:sender_id(
+      id,
+      sender_id,
+      receiver_id,
+      status,
+      created_at,
+      updated_at,
+      perfil_remetente:sender_id(
         id,
         auth_uid,
         email,
@@ -161,7 +174,7 @@ export async function getPendingFriendRequests(userId: string): Promise<FriendRe
         display_name,
         avatar_url
       ),
-      receiver_profile:receiver_id(
+      perfil_destinatario:receiver_id(
         id,
         auth_uid,
         email,
@@ -170,23 +183,23 @@ export async function getPendingFriendRequests(userId: string): Promise<FriendRe
         avatar_url
       )
     `)
-    .eq("receiver_id", userId)
+    .eq("receiver_id", idUsuario)
     .eq("status", "pending");
 
-  if (receivedError) {
-    console.error("Erro ao buscar solicitações de amizade recebidas:", receivedError);
+  if (erroRecebidas) {
+    console.error("Erro ao buscar solicitações de amizade recebidas:", erroRecebidas);
     return [];
   }
 
-  return [...(sentRequests as FriendRequest[]), ...(receivedRequests as FriendRequest[])];
+  return [...(solicitacoesEnviadas as SolicitacaoAmizade[]), ...(solicitacoesRecebidas as SolicitacaoAmizade[])];
 }
 
-export async function sendFriendRequest(senderId: string, receiverId: string): Promise<FriendRequest | null> {
+export async function enviarSolicitacaoAmizade(idRemetente: string, idDestinatario: string): Promise<SolicitacaoAmizade | null> {
   const { data, error } = await supabase
     .from("friend_requests")
     .insert({
-      sender_id: senderId,
-      receiver_id: receiverId,
+      sender_id: idRemetente,
+      receiver_id: idDestinatario,
       status: "pending",
     })
     .select()
@@ -196,45 +209,45 @@ export async function sendFriendRequest(senderId: string, receiverId: string): P
     console.error("Erro ao enviar solicitação de amizade:", error);
     throw error;
   }
-  return data as FriendRequest;
+  return data as SolicitacaoAmizade;
 }
 
-export async function acceptFriendRequest(requestId: string, senderId: string, receiverId: string): Promise<void> {
-  const { error: updateError } = await supabase
+export async function aceitarSolicitacaoAmizade(idSolicitacao: string, idRemetente: string, idDestinatario: string): Promise<void> {
+  const { error: erroAtualizacao } = await supabase
     .from("friend_requests")
     .update({ status: "accepted", updated_at: new Date().toISOString() })
-    .eq("id", requestId);
+    .eq("id", idSolicitacao);
 
-  if (updateError) {
-    console.error("Erro ao aceitar solicitação de amizade:", updateError);
-    throw updateError;
+  if (erroAtualizacao) {
+    console.error("Erro ao aceitar solicitação de amizade:", erroAtualizacao);
+    throw erroAtualizacao;
   }
 
   // Adicionar ambos os lados da amizade na tabela 'friends'
-  const { error: insert1Error } = await supabase
+  const { error: erroInsercao1 } = await supabase
     .from("friends")
-    .insert({ user_id: senderId, friend_id: receiverId });
+    .insert({ user_id: idRemetente, friend_id: idDestinatario });
 
-  if (insert1Error) {
-    console.error("Erro ao adicionar amigo (sender->receiver):", insert1Error);
-    throw insert1Error;
+  if (erroInsercao1) {
+    console.error("Erro ao adicionar amigo (remetente->destinatário):", erroInsercao1);
+    throw erroInsercao1;
   }
 
-  const { error: insert2Error } = await supabase
+  const { error: erroInsercao2 } = await supabase
     .from("friends")
-    .insert({ user_id: receiverId, friend_id: senderId });
+    .insert({ user_id: idDestinatario, friend_id: idRemetente });
 
-  if (insert2Error) {
-    console.error("Erro ao adicionar amigo (receiver->sender):", insert2Error);
-    throw insert2Error;
+  if (erroInsercao2) {
+    console.error("Erro ao adicionar amigo (destinatário->remetente):", erroInsercao2);
+    throw erroInsercao2;
   }
 }
 
-export async function declineFriendRequest(requestId: string): Promise<void> {
+export async function recusarSolicitacaoAmizade(idSolicitacao: string): Promise<void> {
   const { error } = await supabase
     .from("friend_requests")
     .update({ status: "declined", updated_at: new Date().toISOString() })
-    .eq("id", requestId);
+    .eq("id", idSolicitacao);
 
   if (error) {
     console.error("Erro ao recusar solicitação de amizade:", error);
@@ -242,36 +255,36 @@ export async function declineFriendRequest(requestId: string): Promise<void> {
   }
 }
 
-export async function removeFriend(userId: string, friendId: string): Promise<void> {
-  const { error: error1 } = await supabase
+export async function removerAmigo(idUsuario: string, idAmigo: string): Promise<void> {
+  const { error: erro1 } = await supabase
     .from("friends")
     .delete()
-    .eq("user_id", userId)
-    .eq("friend_id", friendId);
+    .eq("user_id", idUsuario)
+    .eq("friend_id", idAmigo);
 
-  if (error1) {
-    console.error("Erro ao remover amigo (user->friend):", error1);
-    throw error1;
+  if (erro1) {
+    console.error("Erro ao remover amigo (usuario->amigo):", erro1);
+    throw erro1;
   }
 
-  const { error: error2 } = await supabase
+  const { error: erro2 } = await supabase
     .from("friends")
     .delete()
-    .eq("user_id", friendId)
-    .eq("friend_id", userId);
+    .eq("user_id", idAmigo)
+    .eq("friend_id", idUsuario);
 
-  if (error2) {
-    console.error("Erro ao remover amigo (friend->user):", error2);
-    throw error2;
+  if (erro2) {
+    console.error("Erro ao remover amigo (amigo->usuario):", erro2);
+    throw erro2;
   }
 }
 
-export async function searchUsers(query: string, currentUserId: string): Promise<any[]> {
+export async function buscarUsuarios(consulta: string, idUsuarioAtual: string): Promise<any[]> {
   const { data, error } = await supabase
     .from("profiles")
     .select("id, display_name, full_name, avatar_url")
-    .ilike("display_name", `%${query}%`)
-    .neq("id", currentUserId) // Não mostra o próprio usuário
+    .ilike("display_name", `%${consulta}%`)
+    .neq("id", idUsuarioAtual) // Não mostra o próprio usuário
     .limit(10);
 
   if (error) {
@@ -280,3 +293,4 @@ export async function searchUsers(query: string, currentUserId: string): Promise
   }
   return data;
 }
+
