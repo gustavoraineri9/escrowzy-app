@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Search, UserPlus, MessageCircle, Flame } from "lucide-react";
-import { useAuth } from "@/../../backend/src/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { 
   buscarAmigos, 
   buscarUsuarios, 
