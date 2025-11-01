@@ -1,71 +1,73 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Trophy, TrendingUp, Gamepad2, Flame, Calendar, ChevronDown, DollarSign, Award, Snowflake } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { buscarEstatisticasConfrontoDireto, EstatisticasConfrontoDireto } from "@/services/friendService";
+import { supabase } from "@/integrations/supabase/client";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
-// Mock data - em produção viria do backend
-const mockFriendData = {
-  id: "friend-1",
-  username: "ProPlayer123",
-  avatar: undefined,
-  currentUser: {
-    username: "Você",
-    avatar: undefined,
-  },
-  headToHead: {
-    yourWins: 8,
-    theirWins: 5,
-    totalBalance: 120.50,
-    biggestPrize: 200.00,
-    dominantGame: "EA FC 25",
-    currentStreak: { type: "wins", count: 2 },
-  },
-  gameStats: [
-    { 
-      game: "EA FC 25", 
-      yourWins: 5, 
-      theirWins: 2,
-      balance: 80.00,
-      streak: { type: "wins", count: 3 },
-      biggestPrize: 100.00,
-      lastFiveMatches: ["win", "win", "win", "loss", "win"]
-    },
-    { 
-      game: "CS2", 
-      yourWins: 2, 
-      theirWins: 2,
-      balance: 0,
-      streak: { type: "draws", count: 0 },
-      biggestPrize: 50.00,
-      lastFiveMatches: ["win", "loss", "win", "loss", "draw"]
-    },
-    { 
-      game: "Valorant", 
-      yourWins: 1, 
-      theirWins: 1,
-      balance: -20.00,
-      streak: { type: "losses", count: 2 },
-      biggestPrize: 30.00,
-      lastFiveMatches: ["loss", "loss", "win", "draw", "draw"]
-    },
-  ],
-  matchHistory: [
-    { id: 1, date: "2025-01-15", game: "EA FC 25", prize: 50.00, result: "win" },
-    { id: 2, date: "2025-01-10", game: "EA FC 25", prize: 30.00, result: "win" },
-    { id: 3, date: "2025-01-08", game: "CS2", prize: 25.00, result: "loss" },
-    { id: 4, date: "2025-01-05", game: "EA FC 25", prize: 40.00, result: "win" },
-    { id: 5, date: "2024-12-28", game: "Valorant", prize: 20.00, result: "loss" },
-  ],
+// Perfis e dados reais serão carregados do Supabase
+type Profile = {
+  id: string;
+  display_name?: string | null;
+  full_name?: string | null;
+  avatar_url?: string | null;
 };
 
 export default function FriendDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const data = mockFriendData;
+
+  // Estados de dados reais
+  const [headStats, setHeadStats] = useState<EstatisticasConfrontoDireto | null>(null);
+  const [loadingHeadStats, setLoadingHeadStats] = useState(false);
+  const [friendProfile, setFriendProfile] = useState<Profile | null>(null);
+  const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
+  const [friendGameStats, setFriendGameStats] = useState<any[]>([]);
+  const [matchHistory, setMatchHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) return;
+      setLoadingHeadStats(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Head-to-head
+        const stats = await buscarEstatisticasConfrontoDireto(user.id, id);
+        if (stats) setHeadStats(stats);
+
+        // Perfis
+        const { data: friendData } = await supabase
+          .from('profiles')
+          .select('id, display_name, full_name, avatar_url')
+          .eq('id', id)
+          .maybeSingle();
+
+        const { data: currentData } = await supabase
+          .from('profiles')
+          .select('id, display_name, full_name, avatar_url')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (friendData) setFriendProfile(friendData as Profile);
+        if (currentData) setCurrentProfile(currentData as Profile);
+
+        // TODO: buscar friendGameStats e matchHistory quando houver tabelas/endpoint
+      } catch (err) {
+        console.error("Erro ao buscar dados do FriendDetails:", err);
+      } finally {
+        setLoadingHeadStats(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
 
   const getBalanceColor = (balance: number) => {
     if (balance > 0) return "text-success";
@@ -78,6 +80,22 @@ export default function FriendDetails() {
     if (balance < 0) return `- R$ ${Math.abs(balance).toFixed(2)}`;
     return `R$ ${balance.toFixed(2)}`;
   };
+
+  // Derived values (preferir dados reais quando disponíveis)
+  const yourWins = headStats ? headStats.vitorias_a : 0;
+  const theirWins = headStats ? headStats.vitorias_b : 0;
+  const totalBalance = headStats ? headStats.saldo_a : 0;
+  const currentStreak = headStats
+    ? { type: headStats.sequencia_vitorias_a > 0 ? 'wins' : 'losses', count: Math.abs(headStats.sequencia_vitorias_a) }
+    : { type: 'wins', count: 0 };
+  const updatedAt = headStats ? headStats.atualizado_em : undefined;
+
+  const currentDisplayName = currentProfile?.display_name || 'Você';
+  const currentAvatar = currentProfile?.avatar_url;
+  const friendDisplayName = friendProfile?.display_name || 'Amigo';
+  const friendAvatar = friendProfile?.avatar_url;
+  const biggestPrize = 0; // placeholder até existir dado real
+  const dominantGame = '—';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
@@ -98,29 +116,32 @@ export default function FriendDetails() {
             <div className="flex items-center justify-between max-w-4xl mx-auto">
               <div className="flex flex-col items-center gap-2">
                 <Avatar className="w-20 h-20">
-                  <AvatarImage src={data.currentUser.avatar} />
+                  <AvatarImage src={currentAvatar} />
                   <AvatarFallback className="text-2xl">VC</AvatarFallback>
                 </Avatar>
-                <p className="font-semibold text-lg">{data.currentUser.username}</p>
+                <p className="font-semibold text-lg">{currentDisplayName}</p>
               </div>
 
               <div className="text-center px-8">
                 <div className="text-4xl font-bold mb-2">
-                  <span className="text-primary">{data.headToHead.yourWins}</span>
+                  <span className="text-primary">{yourWins}</span>
                   <span className="text-muted-foreground mx-4">×</span>
-                  <span className="text-muted-foreground">{data.headToHead.theirWins}</span>
+                  <span className="text-muted-foreground">{theirWins}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">Vitórias</p>
+                {updatedAt && (
+                  <p className="text-xs text-muted-foreground mt-1">Atualizado em: {new Date(updatedAt).toLocaleString('pt-BR')}</p>
+                )}
               </div>
 
               <div className="flex flex-col items-center gap-2">
                 <Avatar className="w-20 h-20">
-                  <AvatarImage src={data.avatar} />
+                  <AvatarImage src={friendAvatar} />
                   <AvatarFallback className="text-2xl">
-                    {data.username.substring(0, 2).toUpperCase()}
+                    {friendDisplayName.substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <p className="font-semibold text-lg">{data.username}</p>
+                <p className="font-semibold text-lg">{friendDisplayName}</p>
               </div>
             </div>
           </CardContent>
@@ -137,8 +158,8 @@ export default function FriendDetails() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Saldo Total</p>
-                  <p className={`text-2xl font-bold ${getBalanceColor(data.headToHead.totalBalance)}`}>
-                    {formatBalance(data.headToHead.totalBalance)}
+                  <p className={`text-2xl font-bold ${getBalanceColor(totalBalance)}`}>
+                    {formatBalance(totalBalance)}
                   </p>
                 </div>
               </div>
@@ -154,7 +175,7 @@ export default function FriendDetails() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Maior Prêmio</p>
-                  <p className="text-2xl font-bold">R$ {data.headToHead.biggestPrize.toFixed(2)}</p>
+                  <p className="text-2xl font-bold">R$ {biggestPrize.toFixed(2)}</p>
                 </div>
               </div>
             </CardContent>
@@ -169,7 +190,7 @@ export default function FriendDetails() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Jogo Dominante</p>
-                  <p className="text-lg font-bold">{data.headToHead.dominantGame}</p>
+                  <p className="text-lg font-bold">{dominantGame}</p>
                 </div>
               </div>
             </CardContent>
@@ -185,8 +206,8 @@ export default function FriendDetails() {
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Sequência Atual</p>
                   <p className="text-lg font-bold">
-                    {data.headToHead.currentStreak.count}{" "}
-                    {data.headToHead.currentStreak.type === "wins" ? "Vitórias" : "Derrotas"}
+                    {currentStreak.count}{" "}
+                    {currentStreak.type === "wins" ? "Vitórias" : "Derrotas"}
                   </p>
                 </div>
               </div>
@@ -199,7 +220,7 @@ export default function FriendDetails() {
           <CardContent className="pt-6">
             <h2 className="text-2xl font-bold mb-6">Desempenho por Jogo</h2>
             <Accordion type="single" collapsible className="space-y-4">
-              {data.gameStats.map((stat) => {
+              {(friendGameStats.length ? friendGameStats : []).map((stat) => {
                 const totalGames = stat.yourWins + stat.theirWins;
                 const yourPercentage = (stat.yourWins / totalGames) * 100;
                 
@@ -335,6 +356,9 @@ export default function FriendDetails() {
                   </AccordionItem>
                 );
               })}
+              {friendGameStats.length === 0 && (
+                <div className="p-6 text-sm text-muted-foreground">Sem estatísticas por jogo para este usuário.</div>
+              )}
             </Accordion>
           </CardContent>
         </Card>
@@ -344,7 +368,8 @@ export default function FriendDetails() {
           <CardContent className="pt-6">
             <h2 className="text-2xl font-bold mb-6">Histórico de Confrontos</h2>
             <div className="space-y-3">
-              {data.matchHistory.map((match) => (
+              {matchHistory.length > 0 ? (
+                matchHistory.map((match) => (
                 <div
                   key={match.id}
                   className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/30 transition-colors"
@@ -378,7 +403,10 @@ export default function FriendDetails() {
                     </Badge>
                   </div>
                 </div>
-              ))}
+                ))
+              ) : (
+                <div className="p-6 text-sm text-muted-foreground">Sem histórico de confrontos registrado.</div>
+              )}
             </div>
           </CardContent>
         </Card>
