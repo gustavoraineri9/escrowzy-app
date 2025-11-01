@@ -108,18 +108,17 @@ export const InvitesTab = () => {
 
       // 2. Fetch friend requests (pending friends where current user is friend_id)
       // *** AGORA USANDO JOIN NATIVO DO SUPABASE ***
-      const { data: friendRequests, error: friendError } = await supabase
-        .from("friends")
-        .select(`
-          id,
-          user_id,
-          status,
-          created_at,
-          // Assume que friends.user_id faz JOIN com profiles.id
-          sender_profile:profiles!user_id(id, full_name, avatar_url) 
-        `)
-        .eq("friend_id", currentUserId)
-        .eq("status", "pending");
+            const { data: friendRequests, error: friendError } = await supabase
+                .from("friends")
+                .select(`
+                    id,
+                    user_id,
+                    status,
+                    created_at,
+                    sender_profile:profiles!user_id(id, full_name, avatar_url)
+                `)
+                .eq("friend_id", currentUserId)
+                .eq("status", "pending");
 
       if (friendError) throw friendError;
 
