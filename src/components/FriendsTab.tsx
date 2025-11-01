@@ -267,6 +267,7 @@ export const FriendsTab = () => {
                       </div>
                     </div>
                   )}
+                  
 
                   {/* Seção Inferior: Financeiro */}
                   <div className="flex justify-center">
