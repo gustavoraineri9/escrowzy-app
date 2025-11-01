@@ -294,3 +294,33 @@ export async function buscarUsuarios(consulta: string, idUsuarioAtual: string): 
   return data;
 }
 
+// Compatibilidade: exportações em inglês usadas por outras partes do app
+export interface HeadToHeadStats {
+  user_a_id: string;
+  user_b_id: string;
+  wins_a: number;
+  wins_b: number;
+  balance_a: number;
+  balance_b: number;
+  win_streak_a: number;
+  win_streak_b: number;
+  updated_at: string;
+}
+
+export async function getHeadToHeadStats(idUsuario: string, idAmigo: string): Promise<HeadToHeadStats | null> {
+  const dados = await buscarEstatisticasConfrontoDireto(idUsuario, idAmigo);
+  if (!dados) return null;
+
+  return {
+    user_a_id: dados.id_usuario_a,
+    user_b_id: dados.id_usuario_b,
+    wins_a: dados.vitorias_a,
+    wins_b: dados.vitorias_b,
+    balance_a: dados.saldo_a,
+    balance_b: dados.saldo_b,
+    win_streak_a: dados.sequencia_vitorias_a,
+    win_streak_b: dados.sequencia_vitorias_b,
+    updated_at: dados.atualizado_em,
+  };
+}
+
