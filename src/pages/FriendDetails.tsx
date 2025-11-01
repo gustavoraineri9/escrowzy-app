@@ -292,5 +292,6 @@ export default function FriendDetails() {
         </Card>
       </div>
     </div>
+    
   );
 }
