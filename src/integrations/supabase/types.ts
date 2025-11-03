@@ -38,63 +38,6 @@ export type Database = {
         }
         Relationships: []
       }
-      audit_logs: {
-        Row: {
-          action: string
-          created_at: string
-          details: Json | null
-          id: string
-          resource_id: string | null
-          resource_type: string
-          user_id: string | null
-        }
-        Insert: {
-          action: string
-          created_at?: string
-          details?: Json | null
-          id?: string
-          resource_id?: string | null
-          resource_type: string
-          user_id?: string | null
-        }
-        Update: {
-          action?: string
-          created_at?: string
-          details?: Json | null
-          id?: string
-          resource_id?: string | null
-          resource_type?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      friend_requests: {
-        Row: {
-          created_at: string
-          id: string
-          receiver_id: string
-          sender_id: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          receiver_id: string
-          sender_id: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          receiver_id?: string
-          sender_id?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       friends: {
         Row: {
           created_at: string
@@ -146,8 +89,6 @@ export type Database = {
           updated_at: string
           user_a_id: string
           user_b_id: string
-          win_streak_a: number
-          win_streak_b: number
           wins_a: number
           wins_b: number
         }
@@ -159,8 +100,6 @@ export type Database = {
           updated_at?: string
           user_a_id: string
           user_b_id: string
-          win_streak_a?: number
-          win_streak_b?: number
           wins_a?: number
           wins_b?: number
         }
@@ -172,8 +111,6 @@ export type Database = {
           updated_at?: string
           user_a_id?: string
           user_b_id?: string
-          win_streak_a?: number
-          win_streak_b?: number
           wins_a?: number
           wins_b?: number
         }
@@ -190,44 +127,6 @@ export type Database = {
             columns: ["user_b_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      invites: {
-        Row: {
-          created_at: string
-          id: string
-          receiver_id: string
-          sender_id: string
-          status: string
-          tournament_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          receiver_id: string
-          sender_id: string
-          status?: string
-          tournament_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          receiver_id?: string
-          sender_id?: string
-          status?: string
-          tournament_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invites_tournament_id_fkey"
-            columns: ["tournament_id"]
-            isOneToOne: false
-            referencedRelation: "tournaments"
             referencedColumns: ["id"]
           },
         ]

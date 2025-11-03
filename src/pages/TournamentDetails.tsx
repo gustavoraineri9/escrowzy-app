@@ -28,12 +28,9 @@ import { TournamentBracket } from "@/components/TournamentBracket";
 import { TournamentTable } from "@/components/TournamentTable";
 import { EditTournamentDialog } from "@/components/EditTournamentDialog";
 import { CancelTournamentDialog } from "@/components/CancelTournamentDialog";
-import { SendInvitesDialog } from "@/components/SendInvitesDialog";
 import { ParticipantStatsTab } from "@/components/ParticipantStatsTab";
 import { useToast } from "@/hooks/use-toast";
-import { getTournamentDetails, updateTournament, removeParticipantFromTournament, deleteTournament } from "@/services/tournamentService";
-import { logAuditEvent } from "@/services/auditService";
-import { useNavigate } from "react-router-dom";
+import { getTournamentDetails, updateTournament, removeParticipantFromTournament } from "@/services/tournamentService";
 
 interface Participant {
   id: string;
@@ -53,14 +50,12 @@ interface Participant {
 const TournamentDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [tournament, setTournament] = useState<any | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [invitesDialogOpen, setInvitesDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchTournament = async () => {
@@ -106,20 +101,9 @@ const TournamentDetails = () => {
     }
   };
 
-  const removeParticipant = async (participantId: string, participantName: string) => {
-    if (!id) return;
-    
+  const removeParticipant = async (participantId: string) => {
     try {
       await removeParticipantFromTournament(participantId);
-      
-      // Registrar evento de auditoria
-      await logAuditEvent(
-        "remove_participant",
-        "tournament",
-        id,
-        { participant_id: participantId, participant_name: participantName }
-      );
-      
       setParticipants(participants.filter(p => p.id !== participantId));
       toast({
         title: "Participante removido",
@@ -156,25 +140,13 @@ const TournamentDetails = () => {
     }
   };
 
-  const handleCancelTournament = async () => {
-    if (!id) return;
-    
-    try {
-      await deleteTournament(id);
-      toast({
-        title: "Campeonato cancelado",
-        description: "O campeonato foi excluído com sucesso.",
-        variant: "destructive",
-      });
-      navigate("/dashboard");
-    } catch (err) {
-      console.error("Erro ao cancelar campeonato:", err);
-      toast({
-        title: "Erro",
-        description: "Não foi possível cancelar o campeonato.",
-        variant: "destructive",
-      });
-    }
+  const handleCancelTournament = () => {
+    // Lógica de cancelamento
+    toast({
+      title: "Campeonato cancelado",
+      description: "Todos os participantes serão reembolsados.",
+      variant: "destructive",
+    });
   };
 
   const getPaymentStatusBadge = (status: Participant["status"]) => {
@@ -246,6 +218,10 @@ const TournamentDetails = () => {
                 <Button size="sm" variant="outline" className="flex-1" onClick={shareWhatsApp}>
                   <Share2 className="w-4 h-4 mr-2" />
                   Compartilhar
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Convidar
                 </Button>
               </div>
             </CardContent>
@@ -337,10 +313,12 @@ const TournamentDetails = () => {
                     <CardTitle>Gerenciar Campeonato</CardTitle>
                     <CardDescription>Gerencie os participantes e o andamento do torneio.</CardDescription>
                   </div>
-                  <Button size="sm" onClick={() => setInvitesDialogOpen(true)}>
-                    <Mail className="w-4 h-4 mr-2" />
-                    Enviar Convites
-                  </Button>
+                  {!tournament.public && (
+                    <Button size="sm">
+                      <Mail className="w-4 h-4 mr-2" />
+                      Enviar Convites
+                    </Button>
+                  )}
                 </div>
                 <TabsList className="grid w-full max-w-md grid-cols-2 mt-4">
                   <TabsTrigger value="participants">Participantes</TabsTrigger>
@@ -385,7 +363,7 @@ const TournamentDetails = () => {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
-                                onClick={() => removeParticipant(participant.id, participant.profiles?.full_name || participant.profiles?.display_name || "Participante")}
+                                onClick={() => removeParticipant(participant.id)}
                               >
                                 <UserMinus className="w-4 h-4 mr-2" />
                                 Remover participante
@@ -448,21 +426,14 @@ const TournamentDetails = () => {
           <EditTournamentDialog
             open={editDialogOpen}
             onOpenChange={setEditDialogOpen}
-            tournament={{ name: tournament.title, visibility: tournament.public ? "public" : "private" }}
+            tournament={tournament}
             onSave={handleEditSave}
           />
           <CancelTournamentDialog
             open={cancelDialogOpen}
             onOpenChange={setCancelDialogOpen}
-            tournamentId={id!}
             tournamentName={tournament.title}
             onConfirm={handleCancelTournament}
-          />
-          <SendInvitesDialog
-            open={invitesDialogOpen}
-            onOpenChange={setInvitesDialogOpen}
-            tournamentId={id!}
-            tournamentName={tournament.title}
           />
         </>
       )}

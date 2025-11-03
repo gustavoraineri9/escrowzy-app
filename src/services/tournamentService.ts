@@ -176,19 +176,6 @@ export const removeParticipantFromTournament = async (participantId: string) => 
   return true;
 };
 
-export const deleteTournament = async (tournamentId: string) => {
-  const { error } = await supabase
-    .from("tournaments" as any)
-    .delete()
-    .eq("id", tournamentId);
-
-  if (error) {
-    console.error("Erro ao excluir torneio:", error);
-    throw error;
-  }
-  return true;
-};
-
 export const joinTournament = async (tournamentId: string, userId: string, gamertag: string, entryFee: number) => {
   const { data, error } = await supabase
     .from("participants" as any)

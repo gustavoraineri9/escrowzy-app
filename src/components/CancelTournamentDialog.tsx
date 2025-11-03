@@ -9,12 +9,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { logAuditEvent } from "@/services/auditService";
 
 interface CancelTournamentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  tournamentId: string;
   tournamentName: string;
   onConfirm: () => void;
 }
@@ -22,37 +20,19 @@ interface CancelTournamentDialogProps {
 export function CancelTournamentDialog({
   open,
   onOpenChange,
-  tournamentId,
   tournamentName,
   onConfirm,
 }: CancelTournamentDialogProps) {
   const { toast } = useToast();
 
-  const handleConfirm = async () => {
-    try {
-      // Registrar evento de auditoria
-      await logAuditEvent(
-        "cancel_tournament",
-        "tournament",
-        tournamentId,
-        { tournament_name: tournamentName }
-      );
-      
-      onConfirm();
-      toast({
-        title: "Campeonato cancelado",
-        description: "O campeonato foi cancelado e os participantes serão notificados.",
-        variant: "destructive",
-      });
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Erro ao cancelar campeonato:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível cancelar o campeonato.",
-        variant: "destructive",
-      });
-    }
+  const handleConfirm = () => {
+    onConfirm();
+    toast({
+      title: "Campeonato cancelado",
+      description: "O campeonato foi cancelado e os participantes serão notificados.",
+      variant: "destructive",
+    });
+    onOpenChange(false);
   };
 
   return (
