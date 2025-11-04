@@ -104,9 +104,8 @@ export async function buscarAmigos(idUsuario: string): Promise<Amigo[]> {
       user_id,
       friend_id,
       created_at,
-      perfis:friend_id(
+      profiles!friends_friend_id_fkey(
         id,
-        auth_uid,
         email,
         full_name,
         display_name,
@@ -119,7 +118,21 @@ export async function buscarAmigos(idUsuario: string): Promise<Amigo[]> {
     console.error("Erro ao buscar amigos:", error);
     return [];
   }
-  return data as Amigo[];
+  
+  return (data || []).map((item: any) => ({
+    id: item.id,
+    id_usuario: item.user_id,
+    id_amigo: item.friend_id,
+    criado_em: item.created_at,
+    perfis: item.profiles ? {
+      id: item.profiles.id,
+      auth_uid: item.profiles.id,
+      email: item.profiles.email,
+      nome_completo: item.profiles.full_name,
+      nome_exibicao: item.profiles.display_name,
+      url_avatar: item.profiles.avatar_url
+    } : null
+  }));
 }
 
 export async function buscarSolicitacoesPendentes(idUsuario: string): Promise<SolicitacaoAmizade[]> {
@@ -132,17 +145,15 @@ export async function buscarSolicitacoesPendentes(idUsuario: string): Promise<So
       status,
       created_at,
       updated_at,
-      perfil_remetente:sender_id(
+      sender_profile:profiles!friend_requests_sender_id_fkey(
         id,
-        auth_uid,
         email,
         full_name,
         display_name,
         avatar_url
       ),
-      perfil_destinatario:receiver_id(
+      receiver_profile:profiles!friend_requests_receiver_id_fkey(
         id,
-        auth_uid,
         email,
         full_name,
         display_name,
@@ -166,17 +177,15 @@ export async function buscarSolicitacoesPendentes(idUsuario: string): Promise<So
       status,
       created_at,
       updated_at,
-      perfil_remetente:sender_id(
+      sender_profile:profiles!friend_requests_sender_id_fkey(
         id,
-        auth_uid,
         email,
         full_name,
         display_name,
         avatar_url
       ),
-      perfil_destinatario:receiver_id(
+      receiver_profile:profiles!friend_requests_receiver_id_fkey(
         id,
-        auth_uid,
         email,
         full_name,
         display_name,
@@ -191,7 +200,35 @@ export async function buscarSolicitacoesPendentes(idUsuario: string): Promise<So
     return [];
   }
 
-  return [...(solicitacoesEnviadas as SolicitacaoAmizade[]), ...(solicitacoesRecebidas as SolicitacaoAmizade[])];
+  const mapToSolicitacao = (item: any): SolicitacaoAmizade => ({
+    id: item.id,
+    id_remetente: item.sender_id,
+    id_destinatario: item.receiver_id,
+    status: item.status,
+    criado_em: item.created_at,
+    atualizado_em: item.updated_at,
+    perfil_remetente: item.sender_profile ? {
+      id: item.sender_profile.id,
+      auth_uid: item.sender_profile.id,
+      email: item.sender_profile.email,
+      nome_completo: item.sender_profile.full_name,
+      nome_exibicao: item.sender_profile.display_name,
+      url_avatar: item.sender_profile.avatar_url
+    } : null,
+    perfil_destinatario: item.receiver_profile ? {
+      id: item.receiver_profile.id,
+      auth_uid: item.receiver_profile.id,
+      email: item.receiver_profile.email,
+      nome_completo: item.receiver_profile.full_name,
+      nome_exibicao: item.receiver_profile.display_name,
+      url_avatar: item.receiver_profile.avatar_url
+    } : null
+  });
+
+  return [
+    ...(solicitacoesEnviadas || []).map(mapToSolicitacao),
+    ...(solicitacoesRecebidas || []).map(mapToSolicitacao)
+  ];
 }
 
 export async function enviarSolicitacaoAmizade(idRemetente: string, idDestinatario: string): Promise<SolicitacaoAmizade | null> {
@@ -209,7 +246,17 @@ export async function enviarSolicitacaoAmizade(idRemetente: string, idDestinatar
     console.error("Erro ao enviar solicitação de amizade:", error);
     throw error;
   }
-  return data as SolicitacaoAmizade;
+  
+  return {
+    id: data.id,
+    id_remetente: data.sender_id,
+    id_destinatario: data.receiver_id,
+    status: data.status as any,
+    criado_em: data.created_at,
+    atualizado_em: data.updated_at,
+    perfil_remetente: null,
+    perfil_destinatario: null
+  };
 }
 
 export async function aceitarSolicitacaoAmizade(idSolicitacao: string, idRemetente: string, idDestinatario: string): Promise<void> {

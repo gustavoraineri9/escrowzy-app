@@ -5,15 +5,12 @@ import { BottomNav } from "@/components/BottomNav";
 import { ProfileTab } from "@/components/ProfileTab";
 import { X1ChallengeDialog } from "@/components/X1ChallengeDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { Tables } from "@/integrations/supabase/types";
-
-type ProfileType = Tables<'profiles'>;
+import { ProfileWithAchievements } from "@/services/profileService";
 
 const Profile = () => {
     const navigate = useNavigate();
     const [x1ChallengeOpen, setX1ChallengeOpen] = useState(false);
-    // O estado e a função de atualização:
-    const [profile, setProfile] = useState<ProfileType | null>(null);
+    const [profile, setProfile] = useState<ProfileWithAchievements | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -22,20 +19,27 @@ const Profile = () => {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) {
-                    navigate('/login'); // Redirecionar para login se não houver usuário
+                    navigate('/login');
                     return;
                 }
 
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('*')
+                    .select(`
+                        *,
+                        user_achievements:user_achievements (
+                            earned_at,
+                            achievement:achievement_id ( id, name, description, icon )
+                        )
+                    `)
                     .eq('id', user.id)
-                    .single();
+                    .maybeSingle();
 
                 if (error) {
                     throw error;
                 }
-                setProfile(data);
+                
+                setProfile(data as ProfileWithAchievements);
             } catch (err: any) {
                 setError(err.message);
             } finally {
@@ -70,10 +74,9 @@ const Profile = () => {
         <div className="min-h-screen bg-background">
             <Navbar />
             <main className="container mx-auto px-4 py-8 pb-24 md:pb-8">
-                {/* CORREÇÃO APLICADA: Passando a função setProfile como prop */}
                 <ProfileTab 
                     profile={profile}
-                    setProfile={setProfile} // <--- ADICIONADO!
+                    setProfile={setProfile}
                 />
             </main>
             <BottomNav 

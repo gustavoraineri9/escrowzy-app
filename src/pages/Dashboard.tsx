@@ -55,17 +55,21 @@ const Dashboard = () => {
 
       setIsAuthenticated(true);
 
-      // Buscar dados do perfil do usuário
       const { data: profile, error: profileError } = await supabase
-        .from("profiles" as any)
+        .from("profiles")
         .select("id, full_name, email, avatar_url")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError) {
         console.error("Erro ao buscar perfil:", profileError);
       } else if (profile) {
-        setUserProfile(profile);
+        setUserProfile({
+          id: profile.id,
+          full_name: profile.full_name || "",
+          email: profile.email || "",
+          avatar_url: profile.avatar_url
+        });
       }
 
       // Buscar contagem de convites

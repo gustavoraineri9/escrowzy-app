@@ -133,20 +133,20 @@ export const InvitesTab = () => {
 
         const { data: senderProfiles, error: profileError } = await supabase
             .from("profiles")
-            .select("auth_uid, full_name, avatar_url, id, display_name") 
-            .in("auth_uid", senderIds);
+            .select("id, full_name, avatar_url, display_name") 
+            .in("id", senderIds);
 
         if (profileError) throw profileError;
 
-        const profileMap = new Map<string, ProfileData>();
+        const profileMap = new Map<string, any>();
         if (senderProfiles) {
              senderProfiles.forEach((p: any) => {
-                 profileMap.set(p.auth_uid, p as ProfileData);
+                 profileMap.set(p.id, p);
              });
         }
         
         const friendInvites: FriendInvite[] = friendRequests.map((f: any) => {
-          const profile = profileMap.get(f.user_id); 
+          const profile = profileMap.get(f.user_id);
           
           const senderName = profile?.display_name || profile?.full_name || "Usuário";
           const senderAvatar = profile?.avatar_url || 

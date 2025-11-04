@@ -19,7 +19,7 @@ interface AchievementType {
 
 // Tipo da relação de desbloqueio (da tabela 'user_achievements', mas aninhada com a conquista)
 interface UserAchievementData {
-    unlocked_at: string | null;
+    earned_at: string | null;
     achievement: AchievementType;
 }
 
@@ -42,17 +42,16 @@ export const profileService = {
      */
     async fetchUserProfile(userId: string): Promise<ProfileWithAchievements | null> {
         
-        // Faz a busca na tabela 'profiles' e faz um JOIN na tabela 'user_achievements'
         const { data, error } = await supabase
             .from('profiles')
             .select(`
-                *, // Seleciona todos os campos da tabela 'profiles'
+                *,
                 user_achievements:user_achievements (
-                    unlocked_at,
-                    achievement:achievement_id ( id, name, description, icon ) // JOIN na tabela 'achievements'
+                    earned_at,
+                    achievement:achievement_id ( id, name, description, icon )
                 )
             `)
-            .eq('id', userId) // Filtra pelo ID do usuário
+            .eq('id', userId)
             .maybeSingle();
 
         if (error) {
@@ -60,13 +59,10 @@ export const profileService = {
             throw error;
         }
 
-        // Se o perfil não for encontrado, retorna null
         if (!data) {
             return null;
         }
 
-        // 🚨 ATENÇÃO: O Supabase retorna a relação como 'user_achievements', que corresponde
-        // exatamente à estrutura do nosso tipo 'ProfileWithAchievements'.
         return data as ProfileWithAchievements;
     },
 
