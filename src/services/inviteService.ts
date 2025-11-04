@@ -65,14 +65,41 @@ export async function getTournamentInvites(tournamentId: string): Promise<Invite
 }
 
 export async function acceptTournamentInvite(inviteId: string): Promise<void> {
-  const { error } = await supabase
+  // Buscar informações do convite
+  const { data: invite, error: inviteError } = await supabase
+    .from("invites")
+    .select("tournament_id, receiver_id")
+    .eq("id", inviteId)
+    .single();
+
+  if (inviteError) {
+    console.error("Erro ao buscar convite:", inviteError);
+    throw inviteError;
+  }
+
+  // Atualizar status do convite para "accepted"
+  const { error: updateError } = await supabase
     .from("invites")
     .update({ status: "accepted", updated_at: new Date().toISOString() })
     .eq("id", inviteId);
 
-  if (error) {
-    console.error("Erro ao aceitar convite:", error);
-    throw error;
+  if (updateError) {
+    console.error("Erro ao aceitar convite:", updateError);
+    throw updateError;
+  }
+
+  // Adicionar usuário como participante do campeonato
+  const { error: participantError } = await supabase
+    .from("participants")
+    .insert({
+      tournament_id: invite.tournament_id,
+      user_id: invite.receiver_id,
+      status: "pending",
+    });
+
+  if (participantError) {
+    console.error("Erro ao adicionar participante:", participantError);
+    throw participantError;
   }
 }
 

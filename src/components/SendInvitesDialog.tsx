@@ -15,7 +15,6 @@ import { Search, Mail, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { sendTournamentInvites } from "@/services/inviteService";
-import { buscarAmigos, buscarUsuarios } from "@/services/friendService";
 
 interface SendInvitesDialogProps {
   open: boolean;
@@ -72,18 +71,49 @@ export function SendInvitesDialog({
       if (!user) return;
       
       setCurrentUserId(user.id);
-      const friendsData = await buscarAmigos(user.id);
       
-      const friendsList: User[] = friendsData
-        .filter(f => f.perfis)
+      // Buscar amigos da tabela friends
+      const { data: friendsData, error } = await supabase
+        .from("friends")
+        .select(`
+          friend_id,
+          profiles!friends_friend_id_fkey (
+            id,
+            display_name,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq("user_id", user.id)
+        .eq("status", "accepted");
+
+      if (error) {
+        console.error("Erro ao buscar amigos:", error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar a lista de amigos.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const friendsList: User[] = (friendsData || [])
+        .filter(f => f.profiles)
         .map(f => ({
-          id: f.perfis!.id,
-          display_name: f.perfis!.nome_exibicao,
-          full_name: f.perfis!.nome_completo,
-          avatar_url: f.perfis!.url_avatar,
+          id: f.profiles.id,
+          display_name: f.profiles.display_name || "",
+          full_name: f.profiles.full_name || "",
+          avatar_url: f.profiles.avatar_url,
         }));
       
       setFriends(friendsList);
+      
+      if (friendsList.length === 0) {
+        toast({
+          title: "Sem amigos",
+          description: "Você ainda não tem amigos adicionados.",
+        });
+      }
     } catch (error) {
       console.error("Erro ao carregar amigos:", error);
       toast({
@@ -100,7 +130,31 @@ export function SendInvitesDialog({
     if (!currentUserId) return;
     
     try {
-      const results = await buscarUsuarios(searchQuery, currentUserId);
+      // Buscar por player_id (display_name)
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, display_name, full_name, avatar_url")
+        .ilike("display_name", `%${searchQuery}%`)
+        .neq("id", currentUserId)
+        .limit(10);
+
+      if (error) {
+        console.error("Erro ao buscar usuários:", error);
+        toast({
+          title: "Erro",
+          description: "Erro ao buscar jogadores.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const results: User[] = (data || []).map(user => ({
+        id: user.id,
+        display_name: user.display_name || "",
+        full_name: user.full_name || "",
+        avatar_url: user.avatar_url,
+      }));
+
       setSearchResults(results);
     } catch (error) {
       console.error("Erro ao buscar usuários:", error);
@@ -161,7 +215,7 @@ export function SendInvitesDialog({
         <DialogHeader>
           <DialogTitle>Enviar Convites</DialogTitle>
           <DialogDescription>
-            Convide amigos ou busque por player_id para participar de "{tournamentName}"
+            Convide amigos ou busque jogadores por player_id para participar de "{tournamentName}"
           </DialogDescription>
         </DialogHeader>
 
@@ -170,7 +224,7 @@ export function SendInvitesDialog({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por player_id ou nome..."
+              placeholder="Buscar por player_id..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -186,8 +240,8 @@ export function SendInvitesDialog({
             ) : displayedUsers.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 {searchQuery.length >= 2
-                  ? "Nenhum usuário encontrado"
-                  : "Nenhum amigo disponível"}
+                  ? "Nenhum jogador encontrado com esse player_id"
+                  : "Sem amigos encontrados. Use a busca para encontrar jogadores."}
               </div>
             ) : (
               <div className="space-y-2">
