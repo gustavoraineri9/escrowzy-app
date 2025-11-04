@@ -413,7 +413,7 @@ const TournamentDetails = () => {
                   ))}
                 </TabsContent>
                 <TabsContent value="stats" className="mt-0">
-                  <ParticipantStatsTab />
+                  <ParticipantStatsTab participants={participants} />
                 </TabsContent>
               </CardContent>
             )}
