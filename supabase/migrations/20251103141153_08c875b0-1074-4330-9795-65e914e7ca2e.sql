@@ -49,10 +49,10 @@ CREATE POLICY "Conquistas são visíveis para todos"
 -- Criar tabela de conquistas dos usuários
 CREATE TABLE IF NOT EXISTS public.user_achievements (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   achievement_id UUID NOT NULL REFERENCES public.achievements(id) ON DELETE CASCADE,
   earned_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  UNIQUE(profile_id, achievement_id)
+  UNIQUE(user_id, achievement_id)
 );
 
 -- Habilitar RLS
@@ -61,11 +61,11 @@ ALTER TABLE public.user_achievements ENABLE ROW LEVEL SECURITY;
 -- Políticas RLS para user_achievements
 CREATE POLICY "Usuários podem ver suas próprias conquistas"
   ON public.user_achievements FOR SELECT
-  USING (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = user_achievements.profile_id AND profiles.auth_uid = auth.uid()));
+  USING (auth.uid() = user_id);
 
 CREATE POLICY "Sistema pode criar conquistas para usuários"
   ON public.user_achievements FOR INSERT
-  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = user_achievements.profile_id AND profiles.auth_uid = auth.uid()));
+  WITH CHECK (auth.uid() = user_id);
 
 -- Criar tabela de estatísticas head-to-head
 CREATE TABLE IF NOT EXISTS public.head_to_head_stats (
