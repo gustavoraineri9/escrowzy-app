@@ -1,7 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Search, Trophy, Target, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { Trophy, Target, TrendingUp } from "lucide-react";
 
 interface Participant {
   id: string;
@@ -23,41 +21,20 @@ interface ParticipantStatsTabProps {
 }
 
 export function ParticipantStatsTab({ participants }: ParticipantStatsTabProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const filteredParticipants = participants.filter(
-    (participant) =>
-      participant.profiles?.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      participant.profiles?.display_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-        <div>
-          <h3 className="text-xl font-semibold mb-1">Estatísticas dos Jogadores</h3>
-          <p className="text-sm text-muted-foreground">
-            Visualize o desempenho de cada participante
-          </p>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar jogador por nome ou gamertag..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
+      <div>
+        <h3 className="text-xl font-semibold mb-1">Estatísticas dos Jogadores</h3>
+        <p className="text-sm text-muted-foreground">
+          Visualize o desempenho de cada participante
+        </p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4">
-        {filteredParticipants.length > 0 ? (
-          filteredParticipants.map((participant) => (
+        {participants.length > 0 ? (
+          participants.map((participant) => (
             <Card key={participant.id} className="glass-card">
               <CardHeader>
                 <div className="flex items-center gap-4">
@@ -123,9 +100,7 @@ export function ParticipantStatsTab({ participants }: ParticipantStatsTabProps) 
           <div className="text-center py-12">
             <p className="text-muted-foreground text-lg">Nenhum participante cadastrado</p>
             <p className="text-sm text-muted-foreground mt-2">
-              {participants.length === 0 
-                ? "Envie convites para adicionar participantes ao campeonato"
-                : "Nenhum participante encontrado com os critérios de busca"}
+              Envie convites para adicionar participantes ao campeonato
             </p>
           </div>
         )}
