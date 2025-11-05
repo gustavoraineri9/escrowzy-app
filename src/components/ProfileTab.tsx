@@ -23,39 +23,33 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
-// ----------------------------------------------------
-// MOCKS DE ESTATÍSTICAS (MANTIDOS INTACTOS)
-// ----------------------------------------------------
-const mockStats = {
-  totalWins: 142,
-  winRate: 68,
-  totalPrize: 1250,
-  bestGame: "EA FC 25",
-};
-
-const mockRecentMatches = [
-  { game: "EA FC 25", opponent: "PlayerX", result: "win", date: "Hoje" },
-  { game: "CS2", opponent: "NoobMaster", result: "win", date: "Ontem" },
-  { game: "EA FC 25", opponent: "ProPlayer", result: "loss", date: "2 dias atrás" },
-  { game: "Valorant", opponent: "SharpShooter", result: "win", date: "3 dias atrás" },
-];
-
-const mockGameStats = [
-  { game: "EA FC 25", wins: 45, losses: 15, winRate: 75, balance: 450 },
-  { game: "CS2", wins: 38, losses: 22, winRate: 63, balance: 320 },
-  { game: "Valorant", wins: 32, losses: 18, winRate: 64, balance: 280 },
-  { game: "League of Legends", wins: 27, losses: 15, winRate: 64, balance: 200 },
-];
 
 // DiceBear Avatar Styles
 const avatarStyles = [
   "adventurer", "adventurer-neutral", "avataaars", "avataaars-neutral", "big-ears", "big-ears-neutral", "big-smile", "bottts", "bottts-neutral", "croodles", "croodles-neutral", "fun-emoji", "icons", "identicon", "lorelei", "lorelei-neutral", "micah", "miniavs", "notionists", "notionists-neutral", "open-peeps", "personas", "pixel-art", "pixel-art-neutral",
 ];
 
-// ----------------------------------------------------
-// TIPOS AUXILIARES (Para o front-end)
-// ----------------------------------------------------
+interface AggregatedStats {
+    totalWins: number;
+    winRate: number;
+    totalPrize: number;
+    bestGame: string;
+}
 
+interface RealMatch {
+    game: string;
+    opponent: string; // display_name do oponente
+    result: 'win' | 'loss' | 'draw';
+    date: string;
+}
+
+interface GamePerformance {
+    game: string;
+    wins: number;
+    losses: number;
+    winRate: number;
+    balance: number;
+}
 interface CombinedAchievement {
     id: string;
     name: string;
