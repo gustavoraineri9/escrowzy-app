@@ -121,7 +121,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
         if (!profile || !allAchievements.length) return [];
 
         const unlockedMap = new Map<string, UserAchievementData>();
-        // Correção de tipagem, garantindo que o tipo 'ua' é tratado corretamente, embora o erro não seja tipagem.
+        // Correção de tipagem, garantindo que o tipo 'ua' é tratado corretamente.
         (profile.user_achievements || []).forEach((ua: any) => { 
             unlockedMap.set(ua.achievement.id, ua);
         });
@@ -144,7 +144,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
     }, [profile, allAchievements]);
     
   // ----------------------------------------------------
-  // FUNÇÕES DE HANDLE
+  // FUNÇÕES DE HANDLE (MANTIDAS INTACTAS)
   // ----------------------------------------------------
   const handleSave = async () => {
     setSaving(true);
@@ -305,7 +305,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
 
         {/* Aba 1: Visão Geral - ÚNICO DIV FILHO */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="space-y-6"> {/* Garante que é um único container (DIV 1) */}
+          <div className="space-y-6"> {/* DIV 1 - ÚNICO CONTAINER DO TABSCONTENT */}
             {/* KPIs */}
             <div>
               <h3 className="text-xl font-bold mb-4">Indicadores Principais</h3>
@@ -319,10 +319,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                       <div>
                         <p className="text-2xl font-bold">{mockStats.totalWins}</p>
                         <p className="text-sm text-muted-foreground">Vitórias Totais</p>
-                      </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </CardContent>
+              </Card>
 
                 <Card className="glass-card">
                   <CardContent className="pt-6">
@@ -366,7 +366,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                 </CardContent>
               </Card>
             </div>
-            </div> {/* FECHA O DIV QUE ENVOLVE OS KPIs */}
+            </div> {/* FECHA O DIV (Indicadores Principais) */}
 
             {/* Conquistas em Destaque (DINÂMICO) */}
             <div>
@@ -413,7 +413,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
             </div> {/* FECHA O DIV DE ATIVIDADE RECENTE */}
           </div> {/* FECHA O DIV 1 - ÚNICO CONTAINER DO TABSCONTENT */}
         </TabsContent>
-        {/* CORREÇÃO FOI AQUI, REMOVENDO O DIV EXTRA DA LINHA 413 DO SEU CÓDIGO ANTERIOR */}
 
         {/* Aba 2: Conquistas (DINÂMICO) - ÚNICO DIV FILHO */}
         <TabsContent value="achievements" className="space-y-6">
@@ -488,11 +487,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                           <p className="text-muted-foreground">Ganhos</p>
                           <p className="font-bold">R$ {stat.balance}</p>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           </div>
         </TabsContent>
