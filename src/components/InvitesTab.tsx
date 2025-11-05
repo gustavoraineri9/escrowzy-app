@@ -4,11 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trophy, Users, DollarSign, Calendar, Check, X, Gamepad2 } from "lucide-react"; 
 import { useState, useEffect, useCallback } from "react";
-// CORREÇÃO: Alterado o alias '@/' para um caminho relativo para resolver o erro de compilação.
+// Assumindo que este caminho relativo é o correto para o seu ambiente
 import { supabase } from "../integrations/supabase/client"; 
 import { useToast } from "@/hooks/use-toast";
 
-// --- Interfaces (Mantidas, mas o uso de participantId mudou para ID do Convite) ---
+// --- Interfaces ---
 interface TournamentInvite {
   id: string; // ID interno gerado (Ex: "tour-uuid")
   type: "tournament";
@@ -24,7 +24,7 @@ interface TournamentInvite {
     startDate: string;
   };
   createdAt: string;
-  participantId: string; // AGORA ARMAZENA O ID DO REGISTRO EM tournament_invites
+  participantId: string; // ID do registro em tournament_invites para as ações
 }
 
 interface FriendInvite {
@@ -36,15 +36,6 @@ interface FriendInvite {
 }
 
 type Invite = TournamentInvite | FriendInvite;
-
-// A interface ProfileData não é estritamente necessária aqui, mas mantida por referência.
-// interface ProfileData {
-//   auth_uid: string;
-//   id: string;
-//   full_name: string | null;
-//   display_name: string | null;
-//   avatar_url: string | null;
-// }
 
 export const InvitesTab = () => {
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -66,15 +57,16 @@ export const InvitesTab = () => {
       let fetchedInvites: Invite[] = [];
 
       // ===============================================
-      // 1. Fetch tournament invites (USANDO tournament_invites)
+      // 1. Fetch tournament invites (USANDO tournament_invites e SELECT LIMPO)
       // ===============================================
       const { data: inviteRecords, error: inviteError } = await supabase
         .from("tournament_invites")
+        // SELECT corrigido: Sem comentários de linha dentro da string!
         .select(`
-          id, // ID do convite na tabela tournament_invites
+          id, 
           tournament_id,
           created_at,
-          sender_profile:profiles!sender_id(id, full_name, avatar_url, display_name), // Perfil do remetente
+          sender_profile:profiles!sender_id(id, full_name, avatar_url, display_name), 
           tournaments!inner(
             id, 
             title, 
@@ -94,7 +86,6 @@ export const InvitesTab = () => {
         const tournamentInvites: TournamentInvite[] = inviteRecords.map((p: any) => ({
           id: `tour-${p.id}`,
           type: "tournament",
-          // Remetente é o sender_profile
           from: {
             name: p.sender_profile.display_name || p.sender_profile.full_name || "Organizador",
             avatar: p.sender_profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.sender_profile.full_name}`,
@@ -106,20 +97,19 @@ export const InvitesTab = () => {
             game: p.tournaments.game,
             entryFee: p.tournaments.entry_fee,
             prizePool: p.tournaments.prize_pool,
-            // Simulação de jogadores atuais (Pode ser melhorado com um count)
+            // Simulação de jogadores atuais 
             players: Math.floor(p.tournaments.max_participants * 0.5), 
             maxPlayers: p.tournaments.max_participants,
             startDate: p.tournaments.starts_at,
           },
           createdAt: p.created_at,
-          // CRUCIAL: Agora armazena o ID do tournament_invites para as ações
-          participantId: p.id, 
+          participantId: p.id, // ID do convite em tournament_invites
         } ));
         fetchedInvites.push(...tournamentInvites);
       }
 
       // ===============================================
-      // 2. Fetch friend requests (Lógica de Amizade Mantida)
+      // 2. Fetch friend requests
       // ===============================================
       const { data: friendRequests, error: friendError } = await supabase
         .from("friends")
@@ -201,7 +191,7 @@ export const InvitesTab = () => {
         const { error: inviteUpdateError } = await supabase
             .from("tournament_invites")
             .update({ status: "accepted" }) 
-            .eq("id", invite.participantId); // invite.participantId é o ID do convite
+            .eq("id", invite.participantId); 
 
         if (inviteUpdateError) throw inviteUpdateError;
 
@@ -216,7 +206,6 @@ export const InvitesTab = () => {
         if (participantInsertError) throw participantInsertError;
 
       } else if (invite.type === "friend") {
-        // Lógica de Amizade
         const { error } = await supabase
           .from("friends")
           .update({ status: "accepted" })
@@ -230,7 +219,7 @@ export const InvitesTab = () => {
       console.error("Erro ao aceitar convite:", error);
       toast({ 
         title: "Erro", 
-        description: "Não foi possível aceitar o convite. Verifique se a taxa de inscrição foi paga ou se já está inscrito.", 
+        description: "Não foi possível aceitar o convite. Verifique regras de segurança (RLS) ou se a taxa foi paga.", 
         variant: "destructive" 
       });
     }
@@ -246,7 +235,6 @@ export const InvitesTab = () => {
           .eq("id", invite.participantId);
         if (error) throw error;
       } else if (invite.type === "friend") {
-        // Lógica de Amizade
         const { error } = await supabase
           .from("friends")
           .delete()
