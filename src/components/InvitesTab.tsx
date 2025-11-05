@@ -57,10 +57,10 @@ export const InvitesTab = () => {
       let fetchedInvites: Invite[] = [];
 
       // ===============================================
-      // 1. Fetch tournament invites (USANDO tournament_invites e SELECT LIMPO)
+      // 1. Fetch tournament invites
       // ===============================================
       const { data: inviteRecords, error: inviteError } = await supabase
-        .from("tournament_invites")
+        .from("invites")
         // SELECT corrigido: Sem comentários de linha dentro da string!
         .select(`
           id, 
@@ -103,7 +103,7 @@ export const InvitesTab = () => {
             startDate: p.tournaments.starts_at,
           },
           createdAt: p.created_at,
-          participantId: p.id, // ID do convite em tournament_invites
+          participantId: p.id, // ID do convite em invites
         } ));
         fetchedInvites.push(...tournamentInvites);
       }
@@ -187,9 +187,9 @@ export const InvitesTab = () => {
       if (invite.type === "tournament") {
         const { data: { user } } = await supabase.auth.getUser();
 
-        // 1. Atualizar o status do convite em tournament_invites para 'accepted'
+        // 1. Atualizar o status do convite em invites para 'accepted'
         const { error: inviteUpdateError } = await supabase
-            .from("tournament_invites")
+            .from("invites")
             .update({ status: "accepted" }) 
             .eq("id", invite.participantId); 
 
@@ -228,9 +228,9 @@ export const InvitesTab = () => {
   const handleDecline = async (invite: Invite) => {
     try {
       if (invite.type === "tournament") {
-        // Deletar o registro de convite da tabela tournament_invites
+        // Deletar o registro de convite da tabela invites
         const { error } = await supabase
-          .from("tournament_invites")
+          .from("invites")
           .delete()
           .eq("id", invite.participantId);
         if (error) throw error;

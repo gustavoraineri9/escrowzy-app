@@ -1,8 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
-// Substitua esta constante pelo nome exato da sua tabela de convites no Supabase
-// Ex: "tournament_invites", "convites_torneio", etc.
-const TOURNAMENT_INVITES_TABLE = "tournament_invites"; 
+// Tabela de convites no Supabase
+const TOURNAMENT_INVITES_TABLE = "invites";
 
 export interface Invite {
   id: string;
@@ -145,5 +144,5 @@ export async function getUserPendingInvites(userId: string): Promise<Invite[]> {
     return [];
   }
 
-  return data as Invite[];
+  return data as unknown as Invite[];
 }

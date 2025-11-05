@@ -73,41 +73,55 @@ export function SendInvitesDialog({
       
       setCurrentUserId(user.id);
       
-      // 🚀 CORREÇÃO E RECOMENDAÇÃO: Simplificado o select.
-      // A consulta agora foca em obter os dados do 'friend' (perfil)
-      // O alias 'friend' é usado para renomear o resultado da junção
-      const { data: friendsData, error } = await supabase
-        .from("friends")
-        .select(`
-          friend:profiles!fk_friend_profile (
-            id,
-            display_name,
-            full_name,
-            avatar_url
-          )
-        `)
-        .eq("user_id", user.id)
-        .eq("status", "accepted");
+      // Buscar amigos - obtemos friend_id e depois buscamos os perfis
+      const { data: friendsData, error } = await supabase
+        .from("friends")
+        .select("friend_id")
+        .eq("user_id", user.id)
+        .eq("status", "accepted");
 
-      if (error) {
-        console.error("Erro ao buscar amigos:", error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar a lista de amigos.",
-          variant: "destructive",
-        });
-        return;
-      }
+      if (error) {
+        console.error("Erro ao buscar amigos:", error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar a lista de amigos.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      // Mapeamento simplificado, assumindo que f.friend existe (já filtramos antes)
-      const friendsList: User[] = (friendsData || [])
-        .filter(f => f.friend)
-        .map(f => ({
-          id: f.friend.id,
-          display_name: f.friend.display_name || "",
-          full_name: f.friend.full_name || "",
-          avatar_url: f.friend.avatar_url,
-        }));
+      if (!friendsData || friendsData.length === 0) {
+        setFriends([]);
+        toast({
+          title: "Sem amigos",
+          description: "Você ainda não tem amigos adicionados.",
+        });
+        return;
+      }
+
+      // Buscar perfis dos amigos
+      const friendIds = friendsData.map(f => f.friend_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, display_name, full_name, avatar_url")
+        .in("id", friendIds);
+
+      if (profilesError) {
+        console.error("Erro ao buscar perfis dos amigos:", profilesError);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar os perfis dos amigos.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const friendsList: User[] = (profilesData || []).map(profile => ({
+        id: profile.id,
+        display_name: profile.display_name || "",
+        full_name: profile.full_name || "",
+        avatar_url: profile.avatar_url,
+      }));
       
       setFriends(friendsList);
       

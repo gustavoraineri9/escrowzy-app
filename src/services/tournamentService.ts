@@ -61,26 +61,26 @@ export const createTournament = async (formData: TournamentFormData) => {
     throw new Error("Usuário não autenticado.");
   }
 
-  const { data, error } = await supabase
-    .from("tournaments" as any)
+  const { data: tournament, error } = await supabase
+    .from("tournaments")
     .insert({
       owner_id: user.data.user.id,
-      title: formData.name, // Mapeando name do form para title da tabela
+      title: formData.name,
       description: formData.description,
       entry_fee: parseFloat(formData.entryFee),
       max_participants: parseInt(formData.maxPlayers),
-      public: formData.visibility === "public", // Mapeando visibility para public
+      public: formData.visibility === "public",
       created_at: new Date().toISOString(),
       starts_at: formData.startsAt,
-      status: "pending", // Status inicial
-      // Campos adicionais do frontend que não estão no esquema fornecido, mas são importantes:
+      status: "pending",
       game: formData.game,
       game_mode: formData.gameMode,
       tournament_type: formData.tournamentType,
       rounds: parseInt(formData.rounds),
       adjudication_method: formData.adjudicationMethod,
-      prize_pool: parseFloat(formData.entryFee) * parseInt(formData.maxPlayers) * 0.95, // Exemplo de cálculo
-      invite_link: `https://escrowzy.com/t/${Math.random().toString(36).substring(2, 15)}`, // Link de convite simples
+      prize_pool: parseFloat(formData.entryFee) * parseInt(formData.maxPlayers) * 0.95,
+      invite_link: `https://escrowzy.com/t/${Math.random().toString(36).substring(2, 15)}`,
+      tolerance_minutes: 0,
     })
     .select()
     .single();
@@ -89,7 +89,35 @@ export const createTournament = async (formData: TournamentFormData) => {
     console.error("Erro ao criar torneio:", error);
     throw error;
   }
-  return data;
+
+  if (!tournament) {
+    throw new Error("Erro ao criar torneio: torneio não retornado");
+  }
+
+  // Buscar display_name do perfil do usuário
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.data.user.id)
+    .single();
+
+  // Adicionar o owner como participante automaticamente
+  const { error: participantError } = await supabase
+    .from("participants")
+    .insert({
+      tournament_id: tournament.id,
+      user_id: user.data.user.id,
+      joined_at: new Date().toISOString(),
+      status: "active",
+      gamertag: profile?.display_name || null,
+    });
+
+  if (participantError) {
+    console.error("Erro ao adicionar owner como participante:", participantError);
+    // Não lance erro aqui para não bloquear a criação do torneio
+  }
+
+  return tournament;
 };
 
 export const getTournamentDetails = async (tournamentId: string): Promise<Tournament | null> => {

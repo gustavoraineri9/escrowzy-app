@@ -343,6 +343,7 @@ export type Database = {
           starts_at: string
           status: string
           title: string
+          tolerance_minutes: number
           tournament_type: string
           updated_at: string
         }
@@ -363,6 +364,7 @@ export type Database = {
           starts_at: string
           status?: string
           title: string
+          tolerance_minutes?: number
           tournament_type: string
           updated_at?: string
         }
@@ -383,6 +385,7 @@ export type Database = {
           starts_at?: string
           status?: string
           title?: string
+          tolerance_minutes?: number
           tournament_type?: string
           updated_at?: string
         }
