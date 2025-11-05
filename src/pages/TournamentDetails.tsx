@@ -530,4 +530,5 @@ const TournamentDetails = () => {
   );
 }; 
 
+
 export default TournamentDetails;
