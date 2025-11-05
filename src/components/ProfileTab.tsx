@@ -23,11 +23,6 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
-// ----------------------------------------------------
-// REMOVIDOS OS MOCKS ANTIGOS. 
-// AS FUNÇÕES DE FETCH SIMULAM AGORA A CONEXÃO.
-// ----------------------------------------------------
-
 // DiceBear Avatar Styles
 const avatarStyles = [
   "adventurer", "adventurer-neutral", "avataaars", "avataaars-neutral", "big-ears", "big-ears-neutral", "big-smile", "bottts", "bottts-neutral", "croodles", "croodles-neutral", "fun-emoji", "icons", "identicon", "lorelei", "lorelei-neutral", "micah", "miniavs", "notionists", "notionists-neutral", "open-peeps", "personas", "pixel-art", "pixel-art-neutral",
@@ -38,25 +33,25 @@ const avatarStyles = [
 // ----------------------------------------------------
 
 interface AggregatedStats {
-    totalWins: number;
-    winRate: number;
-    totalPrize: number;
-    bestGame: string;
+    totalWins: number;
+    winRate: number;
+    totalPrize: number;
+    bestGame: string;
 }
 
 interface RealMatch {
-    game: string;
-    opponent: string; // display_name do oponente
-    result: 'win' | 'loss' | 'draw';
-    date: string;
+    game: string;
+    opponent: string; // display_name do oponente
+    result: 'win' | 'loss' | 'draw';
+    date: string;
 }
 
 interface GamePerformance {
-    game: string;
-    wins: number;
-    losses: number;
-    winRate: number;
-    balance: number;
+    game: string;
+    wins: number;
+    losses: number;
+    winRate: number;
+    balance: number;
 }
 
 interface CombinedAchievement {
@@ -79,38 +74,38 @@ interface UserAchievementData {
 
 // Substitua esta função pela chamada real que calcula os KPIs no backend
 const fetchAggregatedStats = async (userId: string): Promise<AggregatedStats> => {
-    // 💡 LÓGICA REAL: Chamar o profileService.getAggregatedStats(userId)
-    await new Promise(resolve => setTimeout(resolve, 800)); // Simula latência
-    return {
-        totalWins: 235, 
-        winRate: 72, 
-        totalPrize: 3120, 
-        bestGame: "Valorant",
-    };
+    // 💡 LÓGICA REAL: Chamar o profileService.getAggregatedStats(userId)
+    await new Promise(resolve => setTimeout(resolve, 800)); // Simula latência
+    return {
+        totalWins: 235, 
+        winRate: 72, 
+        totalPrize: 3120, 
+        bestGame: "Valorant",
+    };
 };
 
 // Substitua esta função pela chamada real que busca as últimas partidas
 const fetchRecentMatches = async (userId: string): Promise<RealMatch[]> => {
-    // 💡 LÓGICA REAL: Chamar o profileService.getRecentMatches(userId)
-    await new Promise(resolve => setTimeout(resolve, 600)); // Simula latência
-    return [
-        { game: "Valorant", opponent: "PhantomKiller", result: "win", date: "Há 4 horas" }, 
-        { game: "EA FC 25", opponent: "CR7Fanatic", result: "loss", date: "Hoje" },
-        { game: "CS2", opponent: "HeadshotPro", result: "win", date: "Ontem" },
-        { game: "Valorant", opponent: "SwiftBlade", result: "win", date: "2 dias atrás" },
-    ];
+    // 💡 LÓGICA REAL: Chamar o profileService.getRecentMatches(userId)
+    await new Promise(resolve => setTimeout(resolve, 600)); // Simula latência
+    return [
+        { game: "Valorant", opponent: "PhantomKiller", result: "win", date: "Há 4 horas" }, 
+        { game: "EA FC 25", opponent: "CR7Fanatic", result: "loss", date: "Hoje" },
+        { game: "CS2", opponent: "HeadshotPro", result: "win", date: "Ontem" },
+        { game: "Valorant", opponent: "SwiftBlade", result: "win", date: "2 dias atrás" },
+    ];
 };
 
 // Substitua esta função pela chamada real que busca o desempenho por jogo
 const fetchGamePerformance = async (userId: string): Promise<GamePerformance[]> => {
-    // 💡 LÓGICA REAL: Chamar o profileService.getGamePerformance(userId)
-    await new Promise(resolve => setTimeout(resolve, 700)); // Simula latência
-    return [
-        { game: "Valorant", wins: 75, losses: 25, winRate: 75, balance: 1100 },
-        { game: "CS2", wins: 60, losses: 30, winRate: 67, balance: 950 },
-        { game: "League of Legends", wins: 55, losses: 35, winRate: 61, balance: 650 },
-        { game: "EA FC 25", wins: 45, losses: 20, winRate: 69, balance: 420 },
-    ];
+    // 💡 LÓGICA REAL: Chamar o profileService.getGamePerformance(userId)
+    await new Promise(resolve => setTimeout(resolve, 700)); // Simula latência
+    return [
+        { game: "Valorant", wins: 75, losses: 25, winRate: 75, balance: 1100 },
+        { game: "CS2", wins: 60, losses: 30, winRate: 67, balance: 950 },
+        { game: "League of Legends", wins: 55, losses: 35, winRate: 61, balance: 650 },
+        { game: "EA FC 25", wins: 45, losses: 20, winRate: 69, balance: 420 },
+    ];
 };
 
 
@@ -153,30 +148,30 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
     useEffect(() => {
         const fetchData = async () => {
             setIsLoadingStats(true);
-            
+            
             try {
-                const [fetchedStats, fetchedMatches, fetchedGameStats] = await Promise.all([
-                    fetchAggregatedStats(profile.id), // Chame a função que consulta o banco
-                    fetchRecentMatches(profile.id), // Chame a função que consulta o banco
-                    fetchGamePerformance(profile.id) // Chame a função que consulta o banco
-                ]);
+                const [fetchedStats, fetchedMatches, fetchedGameStats] = await Promise.all([
+                    fetchAggregatedStats(profile.id), // Chame a função que consulta o banco
+                    fetchRecentMatches(profile.id), // Chame a função que consulta o banco
+                    fetchGamePerformance(profile.id) // Chame a função que consulta o banco
+                ]);
 
-                setStats(fetchedStats);
-                setRecentMatches(fetchedMatches);
-                setGameStats(fetchedGameStats);
+                setStats(fetchedStats);
+                setRecentMatches(fetchedMatches);
+                setGameStats(fetchedGameStats);
             } catch (error) {
                 console.error("Erro ao buscar dados do perfil:", error);
                 setStats(null);
-                setRecentMatches([]);
-                setGameStats([]);
+                setRecentMatches([]);
+                setGameStats([]);
             } finally {
                 setIsLoadingStats(false);
             }
         };
 
         if (profile.id) {
-            fetchData();
-        }
+            fetchData();
+        }
     }, [profile.id]); 
 
     // EFEITO PARA BUSCAR TODAS AS CONQUISTAS DO BANCO (MANTIDO)
@@ -269,25 +264,25 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
     toast({ title: "Avatar selecionado!", description: "Não esqueça de clicar em 'Salvar Alterações' para confirmar.", });
   };
   const randomizeAvatar = () => { setAvatarSeed(Math.random().toString(36).substring(7)); };
-  
+  
   // Componente de Loading para as Estatísticas
   const StatsLoadingPlaceholder: React.FC = () => (
     <div className="flex justify-center items-center h-48 bg-background/50 rounded-lg">
       <Loader2 className="animate-spin h-8 w-8 text-primary" />
     </div>
   );
-  
+  
   // ----------------------------------------------------
   // 3. JSX (O corpo do componente COMPLETO) - COM DADOS DINÂMICOS
   // ----------------------------------------------------
   return (
     <div className="space-y-6">
       {/* Cabeçalho do Perfil */}
-      {/* ... (mantido inalterado) ... */}
       <Card className="glass-card">
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-6 items-start">
             <Dialog open={avatarDialogOpen} onOpenChange={setAvatarDialogOpen}>
+              {/* O DialogTrigger DEVE envolver um ÚNICO elemento, que já é o seu <Button> */}
               <DialogTrigger asChild>
                 <Button variant="ghost" className="relative group p-0 h-auto w-32 rounded-full hover:bg-transparent">
                   <Avatar className="w-32 h-32">
@@ -295,7 +290,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                     <AvatarFallback className="text-4xl">
                       {editedProfile.display_name 
                         ? editedProfile.display_name.substring(0, 2).toUpperCase() 
-                        : profile.full_name.substring(0, 2).toUpperCase()}
+                        : (profile.full_name || "").substring(0, 2).toUpperCase()} {/* Tratamento de string vazia */}
                     </AvatarFallback>
                   </Avatar>
                   <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -303,61 +298,65 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                   </div>
                 </Button>
               </DialogTrigger>
+              
+              {/* O DialogContent também deve ter um ÚNICO filho se não usar asChild */}
               <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Escolher Avatar</DialogTitle>
-                  <DialogDescription>
-                    Selecione um estilo de avatar e personalize-o.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <Label htmlFor="avatar-seed">Personalizar Avatar</Label>
-                      <Input
-                        id="avatar-seed"
-                        value={avatarSeed}
-                        onChange={(e) => setAvatarSeed(e.target.value)}
-                        placeholder="Digite um texto para personalizar"
-                      />
+                <div className="dialog-content-wrapper"> {/* Envolvido em um DIV de segurança */}
+                  <DialogHeader>
+                    <DialogTitle>Escolher Avatar</DialogTitle>
+                    <DialogDescription>
+                      Selecione um estilo de avatar e personalize-o.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <Label htmlFor="avatar-seed">Personalizar Avatar</Label>
+                        <Input
+                          id="avatar-seed"
+                          value={avatarSeed}
+                          onChange={(e) => setAvatarSeed(e.target.value)}
+                          placeholder="Digite um texto para personalizar"
+                        />
+                      </div>
+                      <Button onClick={randomizeAvatar} variant="outline" className="mt-6">
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Aleatório
+                      </Button>
                     </div>
-                    <Button onClick={randomizeAvatar} variant="outline" className="mt-6">
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Aleatório
+
+                    <div className="flex justify-center p-4 bg-muted rounded-lg">
+                      <Avatar className="w-32 h-32">
+                        <AvatarImage src={generateAvatarUrl(selectedAvatarStyle, avatarSeed)} />
+                        <AvatarFallback>Preview</AvatarFallback>
+                      </Avatar>
+                    </div>
+
+                    <div>
+                      <Label>Estilos de Avatar</Label>
+                      <div className="grid grid-cols-4 md:grid-cols-6 gap-4 mt-2">
+                        {avatarStyles.map((style) => (
+                          <div
+                            key={style}
+                            className={`cursor-pointer border-2 rounded-lg p-2 hover:border-primary transition-colors ${
+                              selectedAvatarStyle === style ? 'border-primary' : 'border-border'
+                            }`}
+                            onClick={() => handleAvatarSelect(style)}
+                          >
+                            <Avatar className="w-full aspect-square">
+                              <AvatarImage src={generateAvatarUrl(style, avatarSeed)} />
+                              <AvatarFallback>{style.substring(0, 2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <p className="text-xs text-center mt-1 truncate">{style}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Button onClick={handleAvatarSave} className="w-full">
+                      Selecionar Avatar
                     </Button>
-                  </div>
-
-                  <div className="flex justify-center p-4 bg-muted rounded-lg">
-                    <Avatar className="w-32 h-32">
-                      <AvatarImage src={generateAvatarUrl(selectedAvatarStyle, avatarSeed)} />
-                      <AvatarFallback>Preview</AvatarFallback>
-                    </Avatar>
-                  </div>
-
-                  <div>
-                    <Label>Estilos de Avatar</Label>
-                    <div className="grid grid-cols-4 md:grid-cols-6 gap-4 mt-2">
-                      {avatarStyles.map((style) => (
-                        <div
-                          key={style}
-                          className={`cursor-pointer border-2 rounded-lg p-2 hover:border-primary transition-colors ${
-                            selectedAvatarStyle === style ? 'border-primary' : 'border-border'
-                          }`}
-                          onClick={() => handleAvatarSelect(style)}
-                        >
-                          <Avatar className="w-full aspect-square">
-                            <AvatarImage src={generateAvatarUrl(style, avatarSeed)} />
-                            <AvatarFallback>{style.substring(0, 2).toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <p className="text-xs text-center mt-1 truncate">{style}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Button onClick={handleAvatarSave} className="w-full">
-                    Selecionar Avatar
-                  </Button>
+                </div>
                 </div>
               </DialogContent>
             </Dialog>
@@ -391,13 +390,16 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
           <TabsTrigger value="edit">Editar Perfil</TabsTrigger>
         </TabsList>
 
-        {/* Aba 1: Visão Geral - ÚNICO DIV FILHO */}
+        {/* Aba 1: Visão Geral - ÚNICO DIV FILHO - OK */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="space-y-6"> {/* DIV 1 - ÚNICO CONTAINER DO TABSCONTENT */}
+          <div className="space-y-6"> 
             {/* KPIs */}
             <div>
               <h3 className="text-xl font-bold mb-4">Indicadores Principais</h3>
-                {isLoadingStats || !stats ? <StatsLoadingPlaceholder /> : (
+                {/* REVISÃO DA LÓGICA CONDICIONAL AQUI PARA GARANTIR RETORNO ÚNICO */}
+                {isLoadingStats || !stats ? (
+                  <StatsLoadingPlaceholder />
+                ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Card className="glass-card">
                       <CardContent className="pt-6">
@@ -455,10 +457,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                       </CardContent>
                     </Card>
                   </div>
-                )}
-              </div> {/* FECHA O DIV (Indicadores Principais) */}
+                )}
+            </div> 
 
-            {/* Conquistas em Destaque (DINÂMICO - MANTIDO) */}
+            {/* Conquistas em Destaque */}
             <div>
               <h3 className="text-xl font-bold mb-4">Últimas Conquistas</h3>
               <div className="flex gap-4 overflow-x-auto pb-2">
@@ -472,12 +474,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                   </Card>
                 ))}
               </div>
-            </div> {/* FECHA O DIV DE CONQUISTAS */}
+            </div> 
 
-            {/* Atividade Recente (AGORA DINÂMICA) */}
+            {/* Atividade Recente */}
             <div>
               <h3 className="text-xl font-bold mb-4">Histórico Recente</h3>
-                {isLoadingStats ? <StatsLoadingPlaceholder /> : (
+                {isLoadingStats ? <StatsLoadingPlaceholder /> : (
                 <Card className="glass-card">
                   <CardContent className="pt-6">
                     <div className="space-y-3">
@@ -498,17 +500,17 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                           </div>
                         </div>
                       ))}
-                  </div>
-                </CardContent>
-              </Card>
-                )}
-            </div> {/* FECHA O DIV DE ATIVIDADE RECENTE */}
-          </div> {/* FECHA O DIV 1 - ÚNICO CONTAINER DO TABSCONTENT */}
+                    </div>
+                  </CardContent>
+                </Card>
+                )}
+            </div> 
+          </div>
         </TabsContent>
 
-        {/* Aba 2: Conquistas (DINÂMICO) - MANTIDO */}
+        {/* Aba 2: Conquistas - ÚNICO DIV FILHO - OK */}
         <TabsContent value="achievements" className="space-y-6">
-          <div className="space-y-6"> {/* Garante que é um único container */}
+          <div className="space-y-6"> 
             <div>
               <h3 className="text-xl font-bold mb-4">Sala de Troféus</h3>
                 {/* EXIBIÇÃO DE LOADING */}
@@ -528,10 +530,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                             combinedAchievements.map((achievement) => (
                                 <Card 
                                     key={achievement.id} 
-                                    className={`glass-card text-center ${!achievement.unlocked && 'opacity-50'}`}
+                                    className={`glass-card text-center ${!achievement.unlocked ? 'opacity-50' : ''}`}
                                 >
                                     <CardContent className="pt-6">
-                                        <div className={`text-6xl mb-3 ${!achievement.unlocked && 'grayscale'}`}>
+                                        <div className={`text-6xl mb-3 ${!achievement.unlocked ? 'grayscale' : ''}`}>
                                             {achievement.unlocked ? achievement.icon : <Lock className="w-16 h-16 mx-auto text-muted-foreground" />}
                                         </div>
                                         <p className="font-bold mb-1">{achievement.name}</p>
@@ -550,12 +552,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
           </div>
         </TabsContent>
 
-        {/* Aba 3: Estatísticas (AGORA DINÂMICA) - ÚNICO DIV FILHO */}
+        {/* Aba 3: Estatísticas - ÚNICO DIV FILHO - OK */}
         <TabsContent value="statistics" className="space-y-6">
-          <div className="space-y-6"> {/* Garante que é um único container */}
+          <div className="space-y-6"> 
             <div>
               <h3 className="text-xl font-bold mb-4">Desempenho por Jogo</h3>
-                {isLoadingStats ? <StatsLoadingPlaceholder /> : (
+                {isLoadingStats ? <StatsLoadingPlaceholder /> : (
                 <div className="space-y-4">
                   {gameStats.map((stat, index) => (
                     <Card key={index} className="glass-card">
@@ -592,12 +594,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                     </Card>
                   ))}
                 </div>
-                )}
+                )}
             </div>
           </div>
         </TabsContent>
 
-        {/* Aba 4: Editar Perfil - MANTIDO */}
+        {/* Aba 4: Editar Perfil - ÚNICO DIV FILHO - OK */}
         <TabsContent value="edit" className="space-y-6">
           <Card className="glass-card">
             <CardHeader>
