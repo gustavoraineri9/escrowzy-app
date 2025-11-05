@@ -305,7 +305,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
 
         {/* Aba 1: Visão Geral - ÚNICO DIV FILHO */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="space-y-6"> {/* Garante que é um único container */}
+          <div className="space-y-6"> {/* Garante que é um único container (DIV 1) */}
             {/* KPIs */}
             <div>
               <h3 className="text-xl font-bold mb-4">Indicadores Principais</h3>
@@ -366,7 +366,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                 </CardContent>
               </Card>
             </div>
-            </div>
+            </div> {/* FECHA O DIV QUE ENVOLVE OS KPIs */}
 
             {/* Conquistas em Destaque (DINÂMICO) */}
             <div>
@@ -382,7 +382,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                   </Card>
                 ))}
               </div>
-            </div>
+            </div> {/* FECHA O DIV DE CONQUISTAS */}
 
             {/* Atividade Recente (mockRecentMatches) */}
             <div>
@@ -405,13 +405,15 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                           </Badge>
                           <span className="text-sm text-muted-foreground">{match.date}</span>
                       </div>
-                    </div>
+                      </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
-            </div>
+            </div> {/* FECHA O DIV DE ATIVIDADE RECENTE */}
+          </div> {/* FECHA O DIV 1 - ÚNICO CONTAINER DO TABSCONTENT */}
         </TabsContent>
+        {/* CORREÇÃO FOI AQUI, REMOVENDO O DIV EXTRA DA LINHA 413 DO SEU CÓDIGO ANTERIOR */}
 
         {/* Aba 2: Conquistas (DINÂMICO) - ÚNICO DIV FILHO */}
         <TabsContent value="achievements" className="space-y-6">
