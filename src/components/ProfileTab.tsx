@@ -452,19 +452,21 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
           </div>
         </TabsContent>
 
-        {/* Aba 3: Estatísticas (mockGameStats) - ÚNICO DIV FILHO */}
+        {/* Aba 3: Estatísticas  - ÚNICO DIV FILHO */}
         <TabsContent value="statistics" className="space-y-6">
-          <div className="space-y-6"> {/* Garante que é um único container */}
-            <div>
-              <h3 className="text-xl font-bold mb-4">Desempenho por Jogo</h3>
-              <div className="space-y-4">
-                {mockGameStats.map((stat, index) => (
-                  <Card key={index} className="glass-card">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Gamepad2 className="w-5 h-5 text-muted-foreground" />
-                          <p className="font-medium">{stat.game}</p>
+          <div className="space-y-6"> {/* Garante que é um único container */}
+            <div>
+              <h3 className="text-xl font-bold mb-4">Desempenho por Jogo</h3>
+                {isLoadingStats ? <StatsLoadingPlaceholder /> : (
+                <div className="space-y-4">
+                  {gameStats.map((stat, index) => (
+                    <Card key={index} className="glass-card">
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Gamepad2 className="w-5 h-5 text-muted-foreground" />
+                            <p className="font-medium">{stat.game}</p>
+                       
                         </div>
                         <div className="flex items-center gap-4 text-sm">
                           <Badge variant="secondary">
