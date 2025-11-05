@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +19,6 @@ import {
   CheckCircle2,
   Clock,
   ArrowLeft,
-  UserPlus,
   Mail,
   MoreVertical,
   UserMinus
@@ -33,7 +32,6 @@ import { ParticipantStatsTab } from "@/components/ParticipantStatsTab";
 import { useToast } from "@/hooks/use-toast";
 import { getTournamentDetails, updateTournament, removeParticipantFromTournament, deleteTournament } from "@/services/tournamentService";
 import { logAuditEvent } from "@/services/auditService";
-import { useNavigate } from "react-router-dom";
 
 interface Participant {
   id: string;
@@ -177,13 +175,25 @@ const TournamentDetails = () => {
     }
   };
 
-  const getPaymentStatusBadge = (status: Participant["status"]) => {
+  /**
+   * CORREÇÃO APLICADA AQUI:
+   * Verifica se o status existe no objeto `variants` antes de tentar acessar `className` e `label`.
+   */
+  const getPaymentStatusBadge = (status: Participant["status"] | string | undefined) => {
     const variants = {
       paid: { label: "Pago", className: "bg-success/10 text-success border-success/20" },
       pending: { label: "Pendente", className: "bg-warning/10 text-warning border-warning/20" },
       forfeit: { label: "Desistiu", className: "bg-destructive/10 text-destructive border-destructive/20" },
     };
-    const variant = variants[status];
+    
+    const variant = variants[status as keyof typeof variants];
+
+    // Se 'variant' for undefined (status desconhecido/inválido), retorna um badge padrão.
+    if (!variant) {
+      return <Badge variant="secondary">Status Desconhecido</Badge>;
+    }
+    
+    // Se o status for válido, retorna o badge correto.
     return <Badge className={variant.className}>{variant.label}</Badge>;
   };
 
