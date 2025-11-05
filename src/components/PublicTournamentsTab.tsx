@@ -49,7 +49,6 @@ export const PublicTournamentsTab = () => {
           players: t.participants[0]?.count || 0,
           maxPlayers: t.max_participants,
           startDate: t.starts_at,
-          // 🛑 CORREÇÃO APLICADA AQUI: Acessa o primeiro elemento do array 'organizer_profile'
           organizer: t.organizer_profile?.[0]?.full_name || "Desconhecido",
         }));
 
@@ -80,9 +79,6 @@ export const PublicTournamentsTab = () => {
         });
         return;
       }
-
-      // Adicionar verificação de limite de jogadores aqui é opcional, 
-      // mas a RLS policy em 'participants' deve garantir isso no banco de dados.
 
       const { error } = await supabase.from("participants").insert({
         tournament_id: tournamentId,
@@ -116,7 +112,6 @@ export const PublicTournamentsTab = () => {
     return (
       <div className="flex items-center justify-center py-12">
         <p className="text-muted-foreground">Carregando torneios públicos...</p>
-        {/* Adicione um loader aqui, como o Loader2 */}
       </div>
     );
   }
@@ -129,7 +124,9 @@ export const PublicTournamentsTab = () => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {tournaments.length > 0 ? (
-          tournaments.map((tournament) => (
+          tournaments
+            .filter(Boolean) // <-- FILTRO DE SEGURANÇA ADICIONADO AQUI
+            .map((tournament) => (
             <Link key={tournament.id} to={`/tournament/${tournament.id}`}>
               <Card className="glass-card hover:shadow-xl transition-all cursor-pointer">
               <CardHeader>
