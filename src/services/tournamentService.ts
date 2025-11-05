@@ -149,22 +149,6 @@ export const getTournamentParticipants = async (tournamentId: string): Promise<P
 };
 
 export const updateTournament = async (tournamentId: string, updates: Partial<Tournament>) => {
-  // Verificar se o usuário é o owner do torneio
-  const user = await supabase.auth.getUser();
-  if (!user.data.user) {
-    throw new Error("Usuário não autenticado.");
-  }
-
-  const { data: tournament } = await supabase
-    .from("tournaments" as any)
-    .select("owner_id")
-    .eq("id", tournamentId)
-    .single();
-
-  if (tournament?.owner_id !== user.data.user.id) {
-    throw new Error("Apenas o host pode editar este campeonato.");
-  }
-
   const { data, error } = await supabase
     .from("tournaments" as any)
     .update(updates as any)
@@ -180,33 +164,6 @@ export const updateTournament = async (tournamentId: string, updates: Partial<To
 };
 
 export const removeParticipantFromTournament = async (participantId: string) => {
-  // Verificar se o usuário é o owner do torneio
-  const user = await supabase.auth.getUser();
-  if (!user.data.user) {
-    throw new Error("Usuário não autenticado.");
-  }
-
-  // Buscar o torneio associado ao participante
-  const { data: participant } = await supabase
-    .from("participants" as any)
-    .select("tournament_id")
-    .eq("id", participantId)
-    .single();
-
-  if (!participant) {
-    throw new Error("Participante não encontrado.");
-  }
-
-  const { data: tournament } = await supabase
-    .from("tournaments" as any)
-    .select("owner_id")
-    .eq("id", participant.tournament_id)
-    .single();
-
-  if (tournament?.owner_id !== user.data.user.id) {
-    throw new Error("Apenas o host pode remover participantes.");
-  }
-
   const { error } = await supabase
     .from("participants" as any)
     .delete()
@@ -220,22 +177,6 @@ export const removeParticipantFromTournament = async (participantId: string) => 
 };
 
 export const deleteTournament = async (tournamentId: string) => {
-  // Verificar se o usuário é o owner do torneio
-  const user = await supabase.auth.getUser();
-  if (!user.data.user) {
-    throw new Error("Usuário não autenticado.");
-  }
-
-  const { data: tournament } = await supabase
-    .from("tournaments" as any)
-    .select("owner_id")
-    .eq("id", tournamentId)
-    .single();
-
-  if (tournament?.owner_id !== user.data.user.id) {
-    throw new Error("Apenas o host pode cancelar este campeonato.");
-  }
-
   const { error } = await supabase
     .from("tournaments" as any)
     .delete()
