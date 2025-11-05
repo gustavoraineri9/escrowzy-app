@@ -5,7 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
 import { Trophy, Users, Calendar, DollarSign } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+// Usando caminho relativo para evitar erro de compilação, se necessário.
+import { supabase } from "../integrations/supabase/client"; 
 import { useToast } from "@/hooks/use-toast";
 
 interface Tournament {
@@ -46,13 +47,12 @@ export const MyTournamentsTab = () => {
       const tournamentIds = new Set<string>(); // Para rastrear IDs e evitar duplicatas
       
       // --- Função auxiliar para buscar metadados de participação (contagem de jogadores) ---
-      // Esta função é vital para garantir que 'players' esteja correto para torneios inscritos
       const fetchParticipantCount = async (tournamentId: string) => {
           const { count, error } = await supabase
               .from("participants")
               .select("id", { count: 'exact', head: true })
               .eq("tournament_id", tournamentId)
-              .eq("status", "active"); // Contar apenas participantes ativos
+              .eq("status", "active"); 
           
           if (error) console.error("Erro ao contar participantes:", error);
           return count || 0;
@@ -97,7 +97,7 @@ export const MyTournamentsTab = () => {
       }
       
       // --- 2. BUSCAR CAMPEONATOS QUE ESTÁ PARTICIPANDO (Participant) ---
-      // A query usa o 'participants' para fazer a junção interna ('tournaments!inner')
+      // SELECT LIMPO: Sem comentários de linha dentro da string!
       const { data: participantRecords, error: participantError } = await supabase
         .from("participants")
         .select(`
@@ -111,11 +111,11 @@ export const MyTournamentsTab = () => {
             entry_fee,
             status,
             created_at,
-            owner_id // Adicionado para verificação de duplicatas
+            owner_id 
           )
         `)
         .eq("user_id", userId)
-        .eq("status", "active"); // Apenas inscritos ativos
+        .eq("status", "active"); 
 
       if (participantError) throw participantError;
 
@@ -126,13 +126,13 @@ export const MyTournamentsTab = () => {
                 .filter((record: any) => record.tournaments && !tournamentIds.has(record.tournaments.id))
                 .map(async (record: any) => {
                     const tournament = record.tournaments;
-                    const playerCount = await fetchParticipantCount(tournament.id); // Busca a contagem correta
+                    const playerCount = await fetchParticipantCount(tournament.id); 
                     tournamentIds.add(tournament.id);
                     return {
                         id: tournament.id,
                         name: tournament.title,
                         game: tournament.game,
-                        players: playerCount, // Contagem correta
+                        players: playerCount, 
                         maxPlayers: tournament.max_participants,
                         prizePool: tournament.prize_pool || 0,
                         entryFee: tournament.entry_fee || 0,
@@ -164,7 +164,7 @@ export const MyTournamentsTab = () => {
   
   useEffect(() => {
     fetchMyTournaments();
-  }, [fetchMyTournaments]); // Dependência adicionada para useCallback
+  }, [fetchMyTournaments]); 
 
   const getStatusBadge = (status: Tournament["status"]) => {
     const variants = {
@@ -226,7 +226,6 @@ export const MyTournamentsTab = () => {
                       </div>
                       <div className="flex flex-col gap-2 items-end">
                         {getStatusBadge(tournament.status)}
-                        {/* Exibe o papel do usuário no torneio */}
                         <Badge variant="secondary" className="text-xs">
                             {tournament.role === 'owner' ? 'Seu Torneio (Criador)' : 'Inscrito'}
                         </Badge>
