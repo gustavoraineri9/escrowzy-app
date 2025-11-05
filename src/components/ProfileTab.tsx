@@ -657,7 +657,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                 />
               </div>
 
-
               <Button onClick={handleSave} className="w-full" disabled={saving}>
                 <Save className="w-4 h-4 mr-2" />
                 {saving ? "Salvando..." : "Salvar Alterações"}
