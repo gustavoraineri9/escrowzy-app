@@ -57,17 +57,17 @@ const avatarStyles = [
 // ----------------------------------------------------
 
 interface CombinedAchievement {
-    id: string;
-    name: string;
-    description: string;
-    icon: string;
-    unlocked: boolean;
-    date: string | null;
+    id: string;
+    name: string;
+    description: string;
+    icon: string;
+    unlocked: boolean;
+    date: string | null;
 }
 
 interface UserAchievementData {
-    unlocked_at: string | null;
-    achievement: { id: string; name: string; description: string; icon: string; }; 
+    unlocked_at: string | null;
+    achievement: { id: string; name: string; description: string; icon: string; }; 
 }
 
 // ----------------------------------------------------
@@ -90,58 +90,59 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
   const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
 
-    // ESTADOS PARA CONQUISTAS DINÂMICAS
-    const [allAchievements, setAllAchievements] = useState<AchievementType[]>([]);
-    const [isLoadingAchievements, setIsLoadingAchievements] = useState(true);
+    // ESTADOS PARA CONQUISTAS DINÂMICAS
+    const [allAchievements, setAllAchievements] = useState<AchievementType[]>([]);
+    const [isLoadingAchievements, setIsLoadingAchievements] = useState(true);
 
   useEffect(() => {
     setEditedProfile(profile);
     setAvatarSeed(profile.display_name || profile.full_name || "");
   }, [profile]);
 
-    // EFEITO PARA BUSCAR TODAS AS CONQUISTAS DO BANCO
-    useEffect(() => {
-        const fetchAllAchievements = async () => {
-            try {
-                const data = await achievementService.fetchAll();
-                setAllAchievements(data);
-            } catch (error) {
-                console.error("Erro ao buscar todas as conquistas:", error);
-                setAllAchievements([]); 
-            } finally {
-                setIsLoadingAchievements(false);
-            }
-        };
+    // EFEITO PARA BUSCAR TODAS AS CONQUISTAS DO BANCO
+    useEffect(() => {
+        const fetchAllAchievements = async () => {
+            try {
+                const data = await achievementService.fetchAll();
+                setAllAchievements(data);
+            } catch (error) {
+                console.error("Erro ao buscar todas as conquistas:", error);
+                setAllAchievements([]); 
+            } finally {
+                setIsLoadingAchievements(false);
+            }
+        };
 
-        fetchAllAchievements();
-    }, []);
+        fetchAllAchievements();
+    }, []);
 
-    // LÓGICA DE COMBINAÇÃO DE CONQUISTAS
-    const combinedAchievements: CombinedAchievement[] = useMemo(() => {
-        if (!profile || !allAchievements.length) return [];
+    // LÓGICA DE COMBINAÇÃO DE CONQUISTAS
+    const combinedAchievements: CombinedAchievement[] = useMemo(() => {
+        if (!profile || !allAchievements.length) return [];
 
-        const unlockedMap = new Map<string, UserAchievementData>();
-        (profile.user_achievements || []).forEach((ua: any) => {
-            unlockedMap.set(ua.achievement.id, ua);
-        });
+        const unlockedMap = new Map<string, UserAchievementData>();
+        // Correção de tipagem, garantindo que o tipo 'ua' é tratado corretamente, embora o erro não seja tipagem.
+        (profile.user_achievements || []).forEach((ua: any) => { 
+            unlockedMap.set(ua.achievement.id, ua);
+        });
 
-        return allAchievements.map(achievement => {
-            const unlockedData = unlockedMap.get(achievement.id);
-            const isUnlocked = !!unlockedData;
+        return allAchievements.map(achievement => {
+            const unlockedData = unlockedMap.get(achievement.id);
+            const isUnlocked = !!unlockedData;
 
-            return {
-                id: achievement.id,
-                name: achievement.name,
-                description: achievement.description,
-                icon: achievement.icon,
-                unlocked: isUnlocked,
-                date: isUnlocked && unlockedData?.unlocked_at 
-                    ? new Date(unlockedData.unlocked_at).toLocaleDateString('pt-BR') 
-                    : null,
-            };
-        });
-    }, [profile, allAchievements]);
-    
+            return {
+                id: achievement.id,
+                name: achievement.name,
+                description: achievement.description,
+                icon: achievement.icon,
+                unlocked: isUnlocked,
+                date: isUnlocked && unlockedData?.unlocked_at 
+                    ? new Date(unlockedData.unlocked_at).toLocaleDateString('pt-BR') 
+                    : null,
+            };
+        });
+    }, [profile, allAchievements]);
+    
   // ----------------------------------------------------
   // FUNÇÕES DE HANDLE
   // ----------------------------------------------------
@@ -302,49 +303,50 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
           <TabsTrigger value="edit">Editar Perfil</TabsTrigger>
         </TabsList>
 
-        {/* Aba 1: Visão Geral */}
+        {/* Aba 1: Visão Geral - ÚNICO DIV FILHO */}
         <TabsContent value="overview" className="space-y-6">
-          {/* KPIs */}
-          <div>
-            <h3 className="text-xl font-bold mb-4">Indicadores Principais</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="glass-card">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Trophy className="w-6 h-6 text-primary" />
+          <div className="space-y-6"> {/* Garante que é um único container */}
+            {/* KPIs */}
+            <div>
+              <h3 className="text-xl font-bold mb-4">Indicadores Principais</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="glass-card">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Trophy className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{mockStats.totalWins}</p>
+                        <p className="text-sm text-muted-foreground">Vitórias Totais</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-2xl font-bold">{mockStats.totalWins}</p>
-                      <p className="text-sm text-muted-foreground">Vitórias Totais</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
-              <Card className="glass-card">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
-                      <PieChart className="w-6 h-6 text-success" />
+                <Card className="glass-card">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+                        <PieChart className="w-6 h-6 text-success" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{mockStats.winRate}%</p>
+                        <p className="text-sm text-muted-foreground">Taxa de Vitória</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-2xl font-bold">{mockStats.winRate}%</p>
-                      <p className="text-sm text-muted-foreground">Taxa de Vitória</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
-              <Card className="glass-card">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
-                      <DollarSign className="w-6 h-6 text-warning" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold">R$ {mockStats.totalPrize}</p>
-                      <p className="text-sm text-muted-foreground">Total em Prêmios</p>
+                <Card className="glass-card">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
+                        <DollarSign className="w-6 h-6 text-warning" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">R$ {mockStats.totalPrize}</p>
+                        <p className="text-sm text-muted-foreground">Total em Prêmios</p>
                     </div>
                   </div>
                 </CardContent>
@@ -364,132 +366,136 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                 </CardContent>
               </Card>
             </div>
-          </div>
-
-          {/* Conquistas em Destaque (DINÂMICO) */}
-          <div>
-            <h3 className="text-xl font-bold mb-4">Últimas Conquistas</h3>
-            <div className="flex gap-4 overflow-x-auto pb-2">
-              {combinedAchievements.filter(a => a.unlocked).slice(0, 4).map((achievement) => (
-                <Card key={achievement.id} className="glass-card min-w-[150px] cursor-pointer hover:scale-105 transition-transform">
-                  <CardContent className="pt-6 text-center">
-                    <div className="text-5xl mb-2">{achievement.icon}</div>
-                    <p className="font-bold">{achievement.name}</p>
-                    <p className="text-xs text-muted-foreground">{achievement.date}</p>
-                  </CardContent>
-                </Card>
-              ))}
             </div>
-          </div>
 
-          {/* Atividade Recente (mockRecentMatches) */}
-          <div>
-            <h3 className="text-xl font-bold mb-4">Histórico Recente</h3>
-            <Card className="glass-card">
-              <CardContent className="pt-6">
-                <div className="space-y-3">
-                  {mockRecentMatches.map((match, index) => (
-                    <div key={index} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                      <div className="flex items-center gap-3">
-                        <Gamepad2 className="w-5 h-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{match.game}</p>
-                          <p className="text-sm text-muted-foreground">vs {match.opponent}</p>
+            {/* Conquistas em Destaque (DINÂMICO) */}
+            <div>
+              <h3 className="text-xl font-bold mb-4">Últimas Conquistas</h3>
+              <div className="flex gap-4 overflow-x-auto pb-2">
+                {combinedAchievements.filter(a => a.unlocked).slice(0, 4).map((achievement) => (
+                  <Card key={achievement.id} className="glass-card min-w-[150px] cursor-pointer hover:scale-105 transition-transform">
+                    <CardContent className="pt-6 text-center">
+                      <div className="text-5xl mb-2">{achievement.icon}</div>
+                      <p className="font-bold">{achievement.name}</p>
+                      <p className="text-xs text-muted-foreground">{achievement.date}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Atividade Recente (mockRecentMatches) */}
+            <div>
+              <h3 className="text-xl font-bold mb-4">Histórico Recente</h3>
+              <Card className="glass-card">
+                <CardContent className="pt-6">
+                  <div className="space-y-3">
+                    {mockRecentMatches.map((match, index) => (
+                      <div key={index} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                        <div className="flex items-center gap-3">
+                          <Gamepad2 className="w-5 h-5 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">{match.game}</p>
+                            <p className="text-sm text-muted-foreground">vs {match.opponent}</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Badge className={match.result === 'win' ? 'bg-success/20 text-success hover:bg-success/30' : 'bg-destructive/20 text-destructive hover:bg-destructive/30'}>
-                          {match.result === 'win' ? 'Vitória' : 'Derrota'}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">{match.date}</span>
+                        <div className="flex items-center gap-3">
+                          <Badge className={match.result === 'win' ? 'bg-success/20 text-success hover:bg-success/30' : 'bg-destructive/20 text-destructive hover:bg-destructive/30'}>
+                            {match.result === 'win' ? 'Vitória' : 'Derrota'}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">{match.date}</span>
                       </div>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
-          </div>
+            </div>
         </TabsContent>
 
-        {/* Aba 2: Conquistas (DINÂMICO) */}
+        {/* Aba 2: Conquistas (DINÂMICO) - ÚNICO DIV FILHO */}
         <TabsContent value="achievements" className="space-y-6">
-          <div>
-            <h3 className="text-xl font-bold mb-4">Sala de Troféus</h3>
-            {/* EXIBIÇÃO DE LOADING */}
-            {isLoadingAchievements ? (
-                <div className="flex justify-center items-center h-48">
-                    <Loader2 className="animate-spin h-6 w-6 text-blue-500" />
-                    <p className="ml-2 text-gray-600">Carregando Sala de Troféus...</p>
-                </div>
-            ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {/* MAPEIA O DADO COMBINADO */}
-                    {combinedAchievements.length === 0 ? (
-                        <p className="col-span-4 text-center text-gray-500 mt-4">
-                            {allAchievements.length === 0 ? "Nenhuma conquista cadastrada no sistema." : "Conquistas do usuário não encontradas."}
-                        </p>
-                    ) : (
-                        combinedAchievements.map((achievement) => (
-                            <Card 
-                                key={achievement.id} 
-                                className={`glass-card text-center ${!achievement.unlocked && 'opacity-50'}`}
-                            >
-                                <CardContent className="pt-6">
-                                    <div className={`text-6xl mb-3 ${!achievement.unlocked && 'grayscale'}`}>
-                                        {achievement.unlocked ? achievement.icon : <Lock className="w-16 h-16 mx-auto text-muted-foreground" />}
-                                    </div>
-                                    <p className="font-bold mb-1">{achievement.name}</p>
-                                    {achievement.unlocked ? (
-                                        <p className="text-sm text-muted-foreground">{achievement.date}</p>
-                                    ) : (
-                                        <p className="text-xs text-muted-foreground mt-2">{achievement.description}</p>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        ))
-                    )}
-                </div>
-            )}
-          </div>
+          <div className="space-y-6"> {/* Garante que é um único container */}
+            <div>
+              <h3 className="text-xl font-bold mb-4">Sala de Troféus</h3>
+                {/* EXIBIÇÃO DE LOADING */}
+                {isLoadingAchievements ? (
+                    <div className="flex justify-center items-center h-48">
+                        <Loader2 className="animate-spin h-6 w-6 text-blue-500" />
+                        <p className="ml-2 text-gray-600">Carregando Sala de Troféus...</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {/* MAPEIA O DADO COMBINADO */}
+                        {combinedAchievements.length === 0 ? (
+                            <p className="col-span-4 text-center text-gray-500 mt-4">
+                                {allAchievements.length === 0 ? "Nenhuma conquista cadastrada no sistema." : "Conquistas do usuário não encontradas."}
+                            </p>
+                        ) : (
+                            combinedAchievements.map((achievement) => (
+                                <Card 
+                                    key={achievement.id} 
+                                    className={`glass-card text-center ${!achievement.unlocked && 'opacity-50'}`}
+                                >
+                                    <CardContent className="pt-6">
+                                        <div className={`text-6xl mb-3 ${!achievement.unlocked && 'grayscale'}`}>
+                                            {achievement.unlocked ? achievement.icon : <Lock className="w-16 h-16 mx-auto text-muted-foreground" />}
+                                        </div>
+                                        <p className="font-bold mb-1">{achievement.name}</p>
+                                        {achievement.unlocked ? (
+                                            <p className="text-sm text-muted-foreground">{achievement.date}</p>
+                                        ) : (
+                                            <p className="text-xs text-muted-foreground mt-2">{achievement.description}</p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            ))
+                        )}
+                    </div>
+                )}
+            </div>
+          </div>
         </TabsContent>
 
-        {/* Aba 3: Estatísticas (mockGameStats) */}
+        {/* Aba 3: Estatísticas (mockGameStats) - ÚNICO DIV FILHO */}
         <TabsContent value="statistics" className="space-y-6">
-          <div>
-            <h3 className="text-xl font-bold mb-4">Desempenho por Jogo</h3>
-            <div className="space-y-4">
-              {mockGameStats.map((stat, index) => (
-                <Card key={index} className="glass-card">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Gamepad2 className="w-5 h-5 text-muted-foreground" />
-                        <p className="font-medium">{stat.game}</p>
+          <div className="space-y-6"> {/* Garante que é um único container */}
+            <div>
+              <h3 className="text-xl font-bold mb-4">Desempenho por Jogo</h3>
+              <div className="space-y-4">
+                {mockGameStats.map((stat, index) => (
+                  <Card key={index} className="glass-card">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Gamepad2 className="w-5 h-5 text-muted-foreground" />
+                          <p className="font-medium">{stat.game}</p>
+                        </div>
+                        <Badge variant="secondary">{stat.winRate}% Win Rate</Badge>
                       </div>
-                      <Badge variant="secondary">{stat.winRate}% Win Rate</Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Vitórias</p>
-                        <p className="font-bold">{stat.wins}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Derrotas</p>
-                        <p className="font-bold">{stat.losses}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Ganhos</p>
-                        <p className="font-bold">R$ {stat.balance}</p>
+                      <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Vitórias</p>
+                          <p className="font-bold">{stat.wins}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Derrotas</p>
+                          <p className="font-bold">{stat.losses}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Ganhos</p>
+                          <p className="font-bold">R$ {stat.balance}</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
-          </div>
+            </div>
+          </div>
         </TabsContent>
 
-        {/* Aba 4: Editar Perfil */}
+        {/* Aba 4: Editar Perfil - ÚNICO CARD FILHO */}
         <TabsContent value="edit" className="space-y-6">
           <Card className="glass-card">
             <CardHeader>
