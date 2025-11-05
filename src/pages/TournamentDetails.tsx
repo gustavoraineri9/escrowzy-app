@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +60,17 @@ const TournamentDetails = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [invitesDialogOpen, setInvitesDialogOpen] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+    };
+    fetchCurrentUser();
+  }, []);
 
   useEffect(() => {
     const fetchTournament = async () => {
@@ -83,6 +95,9 @@ const TournamentDetails = () => {
     fetchTournament();
   }, [id]);
 
+  // Verificar se o usuário atual é o host do torneio
+  const isHost = currentUserId && tournament && currentUserId === tournament.owner_id;
+
   const paidCount = participants.filter(p => p.status === "paid").length;
   const pendingCount = participants.filter(p => p.status === "pending").length;
   const availableSlots = (tournament?.max_participants || 0) - participants.length;
@@ -106,6 +121,16 @@ const TournamentDetails = () => {
 
   const removeParticipant = async (participantId: string, participantName: string) => {
     if (!id) return;
+    
+    // Verificar se o usuário é o host
+    if (!isHost) {
+      toast({
+        title: "Permissão negada",
+        description: "Apenas o host pode remover participantes.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
       await removeParticipantFromTournament(participantId);
@@ -135,6 +160,17 @@ const TournamentDetails = () => {
 
   const handleEditSave = async (data: { name: string; visibility: string }) => {
     if (!id) return;
+    
+    // Verificar se o usuário é o host
+    if (!isHost) {
+      toast({
+        title: "Permissão negada",
+        description: "Apenas o host pode editar o campeonato.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const updatedTournament = await updateTournament(id, { title: data.name, public: data.visibility === "public" });
       if (updatedTournament) {
@@ -156,6 +192,16 @@ const TournamentDetails = () => {
 
   const handleCancelTournament = async () => {
     if (!id) return;
+    
+    // Verificar se o usuário é o host
+    if (!isHost) {
+      toast({
+        title: "Permissão negada",
+        description: "Apenas o host pode cancelar o campeonato.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
       await deleteTournament(id);
@@ -218,7 +264,7 @@ const TournamentDetails = () => {
                 {tournament?.game} • {tournament?.game_mode} • {tournament?.public ? "Público" : "Privado"}
               </p>
             </div>
-            {!loading && !error && tournament && (
+            {!loading && !error && tournament && isHost && (
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
                   Editar
@@ -347,10 +393,12 @@ const TournamentDetails = () => {
                     <CardTitle>Gerenciar Campeonato</CardTitle>
                     <CardDescription>Gerencie os participantes e o andamento do torneio.</CardDescription>
                   </div>
-                  <Button size="sm" onClick={() => setInvitesDialogOpen(true)}>
-                    <Mail className="w-4 h-4 mr-2" />
-                    Enviar Convites
-                  </Button>
+                  {isHost && (
+                    <Button size="sm" onClick={() => setInvitesDialogOpen(true)}>
+                      <Mail className="w-4 h-4 mr-2" />
+                      Enviar Convites
+                    </Button>
+                  )}
                 </div>
                 <TabsList className="grid w-full max-w-md grid-cols-2 mt-4">
                   <TabsTrigger value="participants">Participantes</TabsTrigger>
@@ -386,22 +434,24 @@ const TournamentDetails = () => {
                             </p>
                           </div>
                           {getPaymentStatusBadge(participant.status)}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="ghost">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => removeParticipant(participant.id, participant.profiles?.full_name || participant.profiles?.display_name || "Participante")}
-                              >
-                                <UserMinus className="w-4 h-4 mr-2" />
-                                Remover participante
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {isHost && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="ghost">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => removeParticipant(participant.id, participant.profiles?.full_name || participant.profiles?.display_name || "Participante")}
+                                >
+                                  <UserMinus className="w-4 h-4 mr-2" />
+                                  Remover participante
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </div>
                       </div>
                     ))
