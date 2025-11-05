@@ -199,22 +199,22 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
       <Card className="glass-card">
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-6 items-start">
-            <Dialog open={avatarDialogOpen} onOpenChange={setAvatarDialogOpen}>
-              <DialogTrigger asChild>
-                <div className="relative group cursor-pointer">
-                  <Avatar className="w-32 h-32">
-                    <AvatarImage src={editedProfile.avatar_url || ''} />
-                    <AvatarFallback className="text-4xl">
-                      {editedProfile.display_name 
-                        ? editedProfile.display_name.substring(0, 2).toUpperCase() 
-                        : profile.full_name.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Camera className="w-8 h-8 text-white" />
-                  </div>
-                </div>
-              </DialogTrigger>
+            <Dialog open={avatarDialogOpen} onOpenChange={setAvatarDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" className="relative group p-0 h-auto w-32 rounded-full hover:bg-transparent">
+                  <Avatar className="w-32 h-32">
+                    <AvatarImage src={editedProfile.avatar_url || ''} />
+                    <AvatarFallback className="text-4xl">
+                      {editedProfile.display_name 
+                        ? editedProfile.display_name.substring(0, 2).toUpperCase() 
+                        : profile.full_name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="w-8 h-8 text-white" />
+                  </div>
+                </Button>
+              </DialogTrigger>
               <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Escolher Avatar</DialogTitle>
