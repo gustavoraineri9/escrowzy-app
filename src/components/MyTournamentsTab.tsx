@@ -5,7 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Trophy, Users, Calendar, DollarSign } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+// Assumindo que este caminho relativo é o correto para o seu ambiente
+import { supabase } from "../integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface Tournament {
@@ -20,6 +21,8 @@ interface Tournament {
   createdAt: string;
   currentStage?: string;
   progress?: number;
+  // Nova propriedade para saber se você é o criador ou participante
+  role: "owner" | "participant"; 
 }
 
 type FilterType = "all" | "active" | "completed";
@@ -44,7 +47,11 @@ export const MyTournamentsTab = () => {
         return;
       }
 
-      // Buscar campeonatos criados pelo usuário
+      const userId = user.id;
+      let allTournaments: Tournament[] = [];
+      const tournamentIds = new Set<string>(); // Para evitar duplicados
+
+      // --- 1. BUSCAR CAMPEONATOS CRIADOS (Owner) ---
       const { data: ownerTournaments, error: ownerError } = await supabase
         .from("tournaments" as any)
         .select(`
@@ -58,25 +65,75 @@ export const MyTournamentsTab = () => {
           created_at,
           participants (id)
         `)
-        .eq("owner_id", user.id)
+        .eq("owner_id", userId)
         .order("created_at", { ascending: false });
 
       if (ownerError) throw ownerError;
 
-      // Transformar dados do Supabase para o formato do componente
-      const formattedTournaments: Tournament[] = (ownerTournaments || []).map((tournament: any) => ({
-        id: tournament.id,
-        name: tournament.title,
-        game: tournament.game,
-        players: tournament.participants?.length || 0,
-        maxPlayers: tournament.max_participants,
-        prizePool: tournament.prize_pool || 0,
-        entryFee: tournament.entry_fee || 0,
-        status: tournament.status as "pending" | "active" | "completed",
-        createdAt: tournament.created_at,
-      }));
+      if (ownerTournaments) {
+        const formattedOwnerTournaments: Tournament[] = ownerTournaments.map((tournament: any) => {
+          tournamentIds.add(tournament.id);
+          return {
+            id: tournament.id,
+            name: tournament.title,
+            game: tournament.game,
+            players: tournament.participants?.length || 0,
+            maxPlayers: tournament.max_participants,
+            prizePool: tournament.prize_pool || 0,
+            entryFee: tournament.entry_fee || 0,
+            status: tournament.status as "pending" | "active" | "completed",
+            createdAt: tournament.created_at,
+            role: "owner" as const, // Marcando o papel
+          };
+        });
+        allTournaments.push(...formattedOwnerTournaments);
+      }
+      
+      // --- 2. BUSCAR CAMPEONATOS QUE ESTÁ PARTICIPANDO (Participant) ---
+      const { data: participantRecords, error: participantError } = await supabase
+        .from("participants")
+        .select(`
+          tournaments!inner(
+            id,
+            title,
+            game,
+            max_participants,
+            prize_pool,
+            entry_fee,
+            status,
+            created_at,
+            participants(id) // Para contar jogadores
+          )
+        `)
+        .eq("user_id", userId)
+        .eq("status", "active"); // Apenas participantes ativos (inscritos)
 
-      setTournaments(formattedTournaments);
+      if (participantError) throw participantError;
+
+      if (participantRecords) {
+        const formattedParticipantTournaments: Tournament[] = participantRecords
+          .map((record: any) => record.tournaments)
+          .filter((tournament: any) => !tournamentIds.has(tournament.id)) // Filtra os que já foram adicionados como owner
+          .map((tournament: any) => ({
+            id: tournament.id,
+            name: tournament.title,
+            game: tournament.game,
+            players: tournament.participants?.length || 0,
+            maxPlayers: tournament.max_participants,
+            prizePool: tournament.prize_pool || 0,
+            entryFee: tournament.entry_fee || 0,
+            status: tournament.status as "pending" | "active" | "completed",
+            createdAt: tournament.created_at,
+            role: "participant" as const, // Marcando o papel
+          }));
+
+        allTournaments.push(...formattedParticipantTournaments);
+      }
+
+      // Ordenar por data de criação
+      allTournaments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      setTournaments(allTournaments);
     } catch (error) {
       console.error("Erro ao buscar campeonatos:", error);
       toast({
@@ -115,7 +172,6 @@ export const MyTournamentsTab = () => {
 
   return (
     <div className="space-y-6">
-      {/* Filter Section */}
       <div className="flex items-center gap-4">
         <Select value={filter} onValueChange={(value) => setFilter(value as FilterType)}>
           <SelectTrigger className="w-[200px]">
@@ -132,7 +188,6 @@ export const MyTournamentsTab = () => {
         </p>
       </div>
 
-      {/* Tournaments List */}
       <div className="grid gap-4">
         {filteredTournaments.map((tournament) => (
           <Link key={tournament.id} to={`/tournament/${tournament.id}`}>
@@ -148,6 +203,10 @@ export const MyTournamentsTab = () => {
                   </div>
                   <div className="flex flex-col gap-2">
                     {getStatusBadge(tournament.status)}
+                    {/* Exibe o papel do usuário no torneio (Opcional, mas útil) */}
+                    <Badge variant="secondary" className="text-xs">
+                        {tournament.role === 'owner' ? 'Seu Torneio' : 'Inscrito'}
+                    </Badge>
                   </div>
                 </div>
               </CardHeader>
@@ -167,14 +226,14 @@ export const MyTournamentsTab = () => {
                     <DollarSign className="w-4 h-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Taxa de Entrada</p>
-                      <p className="font-semibold text-primary">R$ {tournament.entryFee}</p>
+                      <p className="font-semibold text-primary">R$ {tournament.entryFee.toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Trophy className="w-4 h-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Premiação Total</p>
-                      <p className="font-semibold text-primary">R$ {tournament.prizePool}</p>
+                      <p className="font-semibold text-primary">R$ {tournament.prizePool.toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -205,7 +264,7 @@ export const MyTournamentsTab = () => {
           <Card className="glass-card p-8 text-center">
             <p className="text-muted-foreground">
               {tournaments.length === 0 
-                ? "Você ainda não criou nenhum campeonato. Clique em 'Criar Campeonato' para começar!" 
+                ? "Você ainda não criou nem está inscrito em nenhum campeonato." 
                 : "Nenhum campeonato encontrado com os filtros selecionados."}
             </p>
           </Card>
