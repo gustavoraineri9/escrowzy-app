@@ -142,7 +142,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
             };
         });
     }, [profile, allAchievements]);
-
+    
   // ----------------------------------------------------
   // FUNÇÕES DE HANDLE (MANTIDAS INTACTAS)
   // ----------------------------------------------------
@@ -156,7 +156,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
 
       const updated = await profileService.updateProfile(dataToUpdate);
       setProfile(updated); 
-
+      
       toast({
         title: "Perfil atualizado!",
         description: "Suas alterações foram salvas com sucesso.",
@@ -199,22 +199,22 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
       <Card className="glass-card">
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-6 items-start">
-            <Dialog open={avatarDialogOpen} onOpenChange={setAvatarDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" className="relative group p-0 h-auto w-32 rounded-full hover:bg-transparent">
-                  <Avatar className="w-32 h-32">
-                    <AvatarImage src={editedProfile.avatar_url || ''} />
-                    <AvatarFallback className="text-4xl">
-                      {editedProfile.display_name 
-                        ? editedProfile.display_name.substring(0, 2).toUpperCase() 
-                        : profile.full_name.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Camera className="w-8 h-8 text-white" />
-                  </div>
-                </Button>
-              </DialogTrigger>
+            <Dialog open={avatarDialogOpen} onOpenChange={setAvatarDialogOpen}>
+              <DialogTrigger asChild>
+                <div className="relative group cursor-pointer">
+                  <Avatar className="w-32 h-32">
+                    <AvatarImage src={editedProfile.avatar_url || ''} />
+                    <AvatarFallback className="text-4xl">
+                      {editedProfile.display_name 
+                        ? editedProfile.display_name.substring(0, 2).toUpperCase() 
+                        : profile.full_name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="w-8 h-8 text-white" />
+                  </div>
+                </div>
+              </DialogTrigger>
               <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Escolher Avatar</DialogTitle>
@@ -238,7 +238,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                       Aleatório
                     </Button>
                   </div>
-
+                  
                   <div className="flex justify-center p-4 bg-muted rounded-lg">
                     <Avatar className="w-32 h-32">
                       <AvatarImage src={generateAvatarUrl(selectedAvatarStyle, avatarSeed)} />
@@ -279,7 +279,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                 <h2 className="text-3xl font-bold">{profile.display_name || profile.full_name}</h2>
                 <p className="text-muted-foreground">@{profile.full_name.toLowerCase().replace(/\s/g, ".")}</p>
               </div>
-
+              
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="w-4 h-4" />
                 <span>Membro desde {formatDate(profile.created_at)}</span>
@@ -550,7 +550,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                 onChange={handlePhoneChange} disabled 
                 />
               </div>
-
+              
               <Button onClick={handleSave} className="w-full" disabled={saving}>
                 <Save className="w-4 h-4 mr-2" />
                 {saving ? "Salvando..." : "Salvar Alterações"}
@@ -561,3 +561,4 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
       </Tabs>
     </div>
   );
+};
