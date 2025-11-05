@@ -77,7 +77,7 @@ export function SendInvitesDialog({
         .from("friends")
         .select(`
           friend_id,
-          profiles!friends_friend_id_fkey (
+          friend:profiles!fk_friend_profile (
             id,
             display_name,
             full_name,
@@ -98,12 +98,12 @@ export function SendInvitesDialog({
       }
 
       const friendsList: User[] = (friendsData || [])
-        .filter(f => f.profiles)
+        .filter(f => f.friend)
         .map(f => ({
-          id: f.profiles.id,
-          display_name: f.profiles.display_name || "",
-          full_name: f.profiles.full_name || "",
-          avatar_url: f.profiles.avatar_url,
+          id: f.friend.id,
+          display_name: f.friend.display_name || "",
+          full_name: f.friend.full_name || "",
+          avatar_url: f.friend.avatar_url,
         }));
       
       setFriends(friendsList);
