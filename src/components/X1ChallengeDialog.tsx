@@ -30,11 +30,12 @@ interface X1ChallengeDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-
+const mockFriends: Amigo[] = []; // Removendo o mock de amigos, será preenchido pelo useEffect
 
 const games = ["FIFA 24", "CS2", "League of Legends", "Valorant", "Fortnite"];
 
-
+// TODO: Implementar a busca real pelo ID do usuário desafiado
+const mockChallengedUserId = "a1b2c3d4-e5f6-7890-1234-567890abcdef";
 
 export const X1ChallengeDialog = ({ open, onOpenChange }: X1ChallengeDialogProps) => {
   const { user } = useAuth(); // Obtém o usuário logado
