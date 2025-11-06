@@ -1,0 +1,35 @@
+
+
+import { supabase } from "@/integrations/supabase/client"; // Usando o caminho do seu friendService
+import { CreateX1ChallengeData, X1ChallengeRow } from "@/types/x1ChallengeTypes"; 
+
+class X1ChallengeService {
+
+    private readonly TABLE_NAME = 'x1_challenges';
+
+    
+    async createChallenge(data: CreateX1ChallengeData): Promise<X1ChallengeRow> {
+        // Garantindo que a aposta seja um número antes de inserir
+        const insertData = {
+            ...data,
+            bet_amount: data.bet_amount // Supabase aceita 'number' ou 'string' aqui, dependendo da tipagem
+        };
+
+        const { data: challenge, error } = await supabase
+            .from(this.TABLE_NAME)
+            .insert([insertData])
+            .select()
+            .single();
+
+        if (error) {
+            console.error("Erro ao criar desafio:", error);
+            throw new Error(`Falha ao criar desafio: ${error.message}`);
+        }
+        
+        return challenge as X1ChallengeRow;
+    }
+
+    // Outras funções (accept, complete, etc.) podem ser adicionadas aqui.
+}
+
+export const x1ChallengeService = new X1ChallengeService();
