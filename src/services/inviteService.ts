@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 // Tabela de convites no Supabase
-const TOURNAMENT_INVITES_TABLE = "invites";
+const TOURNAMENT_INVITES_TABLE = "tournament_invites";
 
 export interface Invite {
   id: string;
