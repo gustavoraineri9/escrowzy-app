@@ -294,26 +294,22 @@ const CreateTournament = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="2">2 jogadores</SelectItem>
-                        <SelectItem value="3">3 jogadores</SelectItem>
-                        <SelectItem value="4">4 jogadores</SelectItem>
-                        <SelectItem value="5">5 jogadores</SelectItem>
-                        <SelectItem value="6">6 jogadores</SelectItem>
-                        <SelectItem value="7">7 jogadores</SelectItem>
-                        <SelectItem value="8">8 jogadores</SelectItem>
-                        <SelectItem value="9">9 jogadores</SelectItem>
-                        <SelectItem value="10">10 jogadores</SelectItem>
-                        <SelectItem value="11">11 jogadores</SelectItem>
-                        <SelectItem value="12">12 jogadores</SelectItem>
-                        <SelectItem value="13">13 jogadores</SelectItem>
-                        <SelectItem value="14">14 jogadores</SelectItem>
-                        <SelectItem value="15">15 jogadores</SelectItem>
-                        <SelectItem value="16">16 jogadores</SelectItem>
-                        <SelectItem value="17">17 jogadores</SelectItem>
-                        <SelectItem value="18">18 jogadores</SelectItem>
-                        <SelectItem value="19">19 jogadores</SelectItem>
-                        <SelectItem value="20">20 jogadores</SelectItem>
-                      </SelectContent>
+	                        {Array.from({ length: 19 }, (_, i) => i + 2) // Números de 2 a 20
+	                          .filter(num => {
+	                            if (formData.tournamentType === "knockout") {
+	                              return num % 2 === 0; // Mata-mata: apenas pares
+	                            }
+	                            if (formData.tournamentType === "league") {
+	                              return num % 2 !== 0; // Pontos corridos: apenas ímpares
+	                            }
+	                            return true; // Outros tipos: todos
+	                          })
+	                          .map(num => (
+	                            <SelectItem key={num} value={String(num)}>
+	                              {num} jogadores
+	                            </SelectItem>
+	                          ))}
+	                      </SelectContent>
                     </Select>
                   </div>
 
