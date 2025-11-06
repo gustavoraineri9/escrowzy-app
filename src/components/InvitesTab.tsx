@@ -60,7 +60,7 @@ export const InvitesTab = () => {
       // 1. Fetch tournament invites
       // ===============================================
       const { data: inviteRecords, error: inviteError } = await supabase
-        .from("invites")
+         .from("tournament_invites")
         // SELECT corrigido: Sem comentários de linha dentro da string!
         .select(`
           id, 
@@ -189,7 +189,7 @@ export const InvitesTab = () => {
 
         // 1. Atualizar o status do convite em invites para 'accepted'
         const { error: inviteUpdateError } = await supabase
-            .from("invites")
+             .from("tournament_invites")
             .update({ status: "accepted" }) 
             .eq("id", invite.participantId); 
 
@@ -230,7 +230,7 @@ export const InvitesTab = () => {
       if (invite.type === "tournament") {
         // Deletar o registro de convite da tabela invites
         const { error } = await supabase
-          .from("invites")
+           .from("tournament_invites")
           .delete()
           .eq("id", invite.participantId);
         if (error) throw error;
