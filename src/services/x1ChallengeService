@@ -1,7 +1,7 @@
 
 
 import { supabase } from "@/integrations/supabase/client"; // Usando o caminho do seu friendService
-import { CreateX1ChallengeData, X1ChallengeRow } from "@/types/x1ChallengeTypes"; 
+import { CreateX1ChallengeData, X1ChallengeRow } from "../types/x1challangeTypes"; 
 
 class X1ChallengeService {
 

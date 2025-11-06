@@ -1,0 +1,36 @@
+
+
+import { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types'; 
+
+// Tipos de Linha (direto do Supabase)
+export type X1ChallengeRow = Tables<'x1_challenges'>;
+export type ProfileRow = Tables<'profiles'>;
+export type FriendRow = Tables<'friends'>;
+
+/**
+ * Dados necessários para criar um novo desafio X1 (para o método insert).
+ */
+export type CreateX1ChallengeData = TablesInsert<'x1_challenges'>;
+
+/**
+ * Estrutura do Amigo que é retornado pelo friendService.buscarAmigos.
+ * A tipagem friends: {...}[] deve ser usada quando fazemos um SELECT com JOIN.
+ * No Supabase, se você seleciona friends com um join em profiles (Ex: select: '*, friend_id(display_name, avatar_url)'),
+ * o objeto retornado é a linha 'friends' + o objeto 'profiles' aninhado.
+ */
+export interface Amigo {
+  id: string; 
+  user_id: string;
+  friend_id: string;
+  status: 'pending' | 'accepted' | 'blocked'; // Se você tiver um Enum no Supabase, use-o
+  created_at: string;
+  updated_at: string;
+  
+  // O Supabase retorna a relação aninhada (aqui estamos assumindo que é 'perfis' como no seu código anterior)
+  perfis?: {
+    display_name: string | null;
+    url_avatar: string | null;
+    full_name: string | null;
+    // ... qualquer outro campo do 'profiles' que você esteja buscando
+  } | null;
+}
