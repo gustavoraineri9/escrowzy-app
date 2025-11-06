@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { x1ChallengeService } from "../services/x1ChallengeService";
 // Note: CreateX1ChallengeData e Amigo precisam ser exportados de seus respectivos arquivos
-import { CreateX1ChallengeData } from "../types/x1ChallengeTypes"; 
+import { CreateX1ChallengeData} from "../types/x1ChallangeTypes"; 
 import { buscarAmigos, buscarUsuarios, Amigo } from "@/services/friendService";
 import { useAuth } from "../pages/Auth"; 
 
