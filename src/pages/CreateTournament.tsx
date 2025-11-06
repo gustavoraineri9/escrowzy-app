@@ -24,13 +24,44 @@ const CreateTournament = () => {
     crossPlay: false,
     maxPlayers: "4",
     entryFee: "",
-    adjudicationMethod: "host",
+    adjudicationMethod: "mutual_decision",
     description: "",
-    startsAt: "",
+    startDate: new Date().toISOString().split('T')[0], // Pre-fill with today
+    startTime: "", // Empty by default
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar que ai_analysis não pode ser selecionado
+    if (formData.adjudicationMethod === "ai_analysis") {
+      toast({
+        title: "Recurso indisponível",
+        description: "Análise por IA ainda não está disponível.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Combinar data e hora em startsAt
+    let startsAt = formData.startDate;
+    if (formData.startTime) {
+      startsAt = `${formData.startDate}T${formData.startTime}`;
+    } else {
+      startsAt = `${formData.startDate}T00:00:00`;
+    }
+    
+    // Validar que não seja mais de 24h no passado
+    const startDateTime = new Date(startsAt);
+    const now = new Date();
+    const diffHours = (now.getTime() - startDateTime.getTime()) / (1000 * 60 * 60);
+    
+    if (diffHours > 24) {
+      const confirmPast = window.confirm(
+        "A data de início é mais de 24 horas no passado. Deseja continuar?"
+      );
+      if (!confirmPast) return;
+    }
     
     toast({
       title: "Campeonato criado!",
@@ -38,7 +69,22 @@ const CreateTournament = () => {
     });
     
     try {
-      await createTournament(formData);
+      const tournamentData = {
+        name: formData.name,
+        game: formData.game,
+        gameMode: formData.gameMode,
+        tournamentType: formData.tournamentType,
+        rounds: formData.rounds,
+        visibility: formData.visibility,
+        crossPlay: formData.crossPlay,
+        maxPlayers: formData.maxPlayers,
+        entryFee: formData.entryFee,
+        adjudicationMethod: formData.adjudicationMethod,
+        description: formData.description,
+        startsAt,
+      };
+      
+      await createTournament(tournamentData);
       toast({
         title: "Campeonato criado com sucesso!",
         description: "Convite gerado. Compartilhe com os participantes.",
@@ -106,15 +152,28 @@ const CreateTournament = () => {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="startsAt">Data e Hora de Início</Label>
-                  <Input
-                    id="startsAt"
-                    type="datetime-local"
-                    value={formData.startsAt}
-                    onChange={(e) => setFormData({ ...formData, startsAt: e.target.value })}
-                    required
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="startDate">Data de Início</Label>
+                    <Input
+                      id="startDate"
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="startTime">Hora de Início</Label>
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={formData.startTime}
+                      onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                      placeholder="Opcional"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -256,17 +315,21 @@ const CreateTournament = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="host">Host/Árbitro Manual</SelectItem>
-                      <SelectItem value="ai">Análise por IA (automática)</SelectItem>
-                      <SelectItem value="hybrid">Híbrido (IA + confirmação do host)</SelectItem>
+                      <SelectItem value="mutual_decision">
+                        Decisão Mútua
+                      </SelectItem>
+                      <SelectItem value="ai_analysis" disabled className="opacity-50 cursor-not-allowed">
+                        <div className="flex flex-col">
+                          <span>Análise por IA</span>
+                          <span className="text-xs text-muted-foreground">Recurso indisponível no momento</span>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-sm text-muted-foreground">
-                    {formData.adjudicationMethod === "host"
-                      ? "Você decidirá o vencedor manualmente"
-                      : formData.adjudicationMethod === "ai"
-                      ? "IA analisará evidências automaticamente"
-                      : "IA sugere o vencedor e você confirma"}
+                    {formData.adjudicationMethod === "mutual_decision"
+                      ? "Ambos os jogadores devem inserir resultados idênticos para confirmar o vencedor. Em caso de divergência, anexar evidências para que o suporte determine o vencedor."
+                      : "Futuro: Análise por IA — recurso indisponível no momento."}
                   </p>
                 </div>
 
