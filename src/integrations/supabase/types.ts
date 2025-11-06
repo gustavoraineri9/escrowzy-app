@@ -330,6 +330,8 @@ export type Database = {
           adjudication_method: string
           created_at: string
           description: string | null
+          disconnect_action: string | null
+          disconnect_max_restarts: number | null
           entry_fee: number
           game: string
           game_mode: string | null
@@ -351,6 +353,8 @@ export type Database = {
           adjudication_method?: string
           created_at?: string
           description?: string | null
+          disconnect_action?: string | null
+          disconnect_max_restarts?: number | null
           entry_fee?: number
           game: string
           game_mode?: string | null
@@ -372,6 +376,8 @@ export type Database = {
           adjudication_method?: string
           created_at?: string
           description?: string | null
+          disconnect_action?: string | null
+          disconnect_max_restarts?: number | null
           entry_fee?: number
           game?: string
           game_mode?: string | null

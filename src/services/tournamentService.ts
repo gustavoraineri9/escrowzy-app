@@ -13,6 +13,9 @@ interface TournamentFormData {
   adjudicationMethod: string;
   description: string;
   startsAt: string;
+  toleranceMinutes: string;
+  disconnectAction: string;
+  disconnectMaxRestarts: string | null;
 }
 
 interface Tournament {
@@ -80,7 +83,9 @@ export const createTournament = async (formData: TournamentFormData) => {
       adjudication_method: formData.adjudicationMethod,
       prize_pool: parseFloat(formData.entryFee) * parseInt(formData.maxPlayers) * 0.95,
       invite_link: `https://escrowzy.com/t/${Math.random().toString(36).substring(2, 15)}`,
-      tolerance_minutes: 0,
+      tolerance_minutes: parseInt(formData.toleranceMinutes),
+      disconnect_action: formData.disconnectAction,
+      disconnect_max_restarts: formData.disconnectMaxRestarts ? parseInt(formData.disconnectMaxRestarts) : null,
     })
     .select()
     .single();

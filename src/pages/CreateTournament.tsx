@@ -30,6 +30,8 @@ const CreateTournament = () => {
     startDate: new Date().toISOString().split('T')[0], // Pre-fill with today
     startTime: "", // Empty by default
     toleranceMinutes: "15", // Default 15 minutes
+    disconnectAction: "end", // Default: encerrar jogo
+    disconnectMaxRestarts: "1", // Default: 1 reinício
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,6 +87,8 @@ const CreateTournament = () => {
         description: formData.description,
         startsAt,
         toleranceMinutes: formData.toleranceMinutes,
+        disconnectAction: formData.disconnectAction,
+        disconnectMaxRestarts: formData.disconnectAction === "restart_then_end" ? formData.disconnectMaxRestarts : null,
       };
       
       await createTournament(tournamentData);
@@ -385,6 +389,58 @@ const CreateTournament = () => {
                     {formData.adjudicationMethod === "mutual_decision"
                       ? "Ambos os jogadores devem inserir resultados idênticos para confirmar o vencedor. Em caso de divergência, anexar evidências para que o suporte determine o vencedor."
                       : "Futuro: Análise por IA — recurso indisponível no momento."}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="disconnectAction">Política de Disconnect</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>Escolha o que deve acontecer se um jogador desconectar: encerrar, reiniciar ou reiniciar N vezes antes de encerrar. Máximo de 3 reinícios.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <Select
+                    value={formData.disconnectAction}
+                    onValueChange={(value) => setFormData({ ...formData, disconnectAction: value })}
+                  >
+                    <SelectTrigger id="disconnectAction">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="end">Encerrar jogo</SelectItem>
+                      <SelectItem value="restart">Reiniciar jogo</SelectItem>
+                      <SelectItem value="restart_then_end">Reiniciar até X vezes, depois encerrar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formData.disconnectAction === "restart_then_end" && (
+                    <div className="space-y-2 mt-4">
+                      <Label htmlFor="disconnectMaxRestarts">Número máximo de reinícios</Label>
+                      <Select
+                        value={formData.disconnectMaxRestarts}
+                        onValueChange={(value) => setFormData({ ...formData, disconnectMaxRestarts: value })}
+                      >
+                        <SelectTrigger id="disconnectMaxRestarts">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 reinício</SelectItem>
+                          <SelectItem value="2">2 reinícios</SelectItem>
+                          <SelectItem value="3">3 reinícios</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    {formData.disconnectAction === "end" && "Em caso de disconnect, a partida será finalizada imediatamente."}
+                    {formData.disconnectAction === "restart" && "Em caso de disconnect, a partida será reiniciada automaticamente."}
+                    {formData.disconnectAction === "restart_then_end" && `A partida pode ser reiniciada até ${formData.disconnectMaxRestarts} ${formData.disconnectMaxRestarts === "1" ? "vez" : "vezes"}, depois será encerrada.`}
                   </p>
                 </div>
 
