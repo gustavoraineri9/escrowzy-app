@@ -3,7 +3,7 @@ import {
   X1Challenge,
   CreateX1ChallengeData,
   UpdateX1ChallengeData,
-} from "../types/x1ChallengeTypes";
+} from "../integrations/supabase/types.ts";
 
 const TABLE_NAME = "x1_challenges";
 

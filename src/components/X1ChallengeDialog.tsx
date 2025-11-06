@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { x1ChallengeService } from "@/services/x1ChallengeService";
-import { CreateX1ChallengeData } from "@/types/x1ChallengeTypes";
+import { x1ChallengeService } from "../services/x1challangeService.ts"; 
+
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useAuth } from "@/context/AuthContext"; // Assumindo que existe um hook para o contexto de autenticação
+import { useAuth } from "../pages/Auth.tsx"; 
 import { buscarAmigos, Amigo } from "@/services/friendService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
