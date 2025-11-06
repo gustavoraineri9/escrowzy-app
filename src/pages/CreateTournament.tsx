@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Navbar } from "@/components/Navbar";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const CreateTournament = () => {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ const CreateTournament = () => {
     description: "",
     startDate: new Date().toISOString().split('T')[0], // Pre-fill with today
     startTime: "", // Empty by default
+    toleranceMinutes: "15", // Default 15 minutes
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,6 +84,7 @@ const CreateTournament = () => {
         adjudicationMethod: formData.adjudicationMethod,
         description: formData.description,
         startsAt,
+        toleranceMinutes: formData.toleranceMinutes,
       };
       
       await createTournament(tournamentData);
@@ -275,7 +278,21 @@ const CreateTournament = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="maxPlayers">Número de Jogadores</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="maxPlayers">Número de Jogadores</Label>
+                      {formData.tournamentType === "league" && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Pontos corridos permite números ímpares (ex.: 3 amigos em ida e volta)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                     <Select
                       value={formData.maxPlayers}
                       onValueChange={(value) => setFormData({ ...formData, maxPlayers: value })}
@@ -285,8 +302,14 @@ const CreateTournament = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="2">2 jogadores</SelectItem>
+                        <SelectItem value="3">3 jogadores</SelectItem>
                         <SelectItem value="4">4 jogadores</SelectItem>
+                        <SelectItem value="5">5 jogadores</SelectItem>
+                        <SelectItem value="6">6 jogadores</SelectItem>
+                        <SelectItem value="7">7 jogadores</SelectItem>
                         <SelectItem value="8">8 jogadores</SelectItem>
+                        <SelectItem value="10">10 jogadores</SelectItem>
+                        <SelectItem value="12">12 jogadores</SelectItem>
                         <SelectItem value="16">16 jogadores</SelectItem>
                       </SelectContent>
                     </Select>
@@ -303,6 +326,38 @@ const CreateTournament = () => {
                       required
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="toleranceMinutes">Tempo de tolerância para início (minutos)</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>Este tempo define quantos minutos os jogadores têm de tolerância após o horário marcado. Se um ou ambos não aparecerem dentro desse período, poderá ser registrado W.O. conforme as regras do torneio.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <Select
+                    value={formData.toleranceMinutes}
+                    onValueChange={(value) => setFormData({ ...formData, toleranceMinutes: value })}
+                  >
+                    <SelectTrigger id="toleranceMinutes">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Sem tolerância</SelectItem>
+                      <SelectItem value="5">5 minutos</SelectItem>
+                      <SelectItem value="10">10 minutos</SelectItem>
+                      <SelectItem value="15">15 minutos</SelectItem>
+                      <SelectItem value="20">20 minutos</SelectItem>
+                      <SelectItem value="30">30 minutos</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
