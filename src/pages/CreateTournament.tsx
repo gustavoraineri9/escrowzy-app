@@ -312,9 +312,18 @@ const CreateTournament = () => {
                         <SelectItem value="6">6 jogadores</SelectItem>
                         <SelectItem value="7">7 jogadores</SelectItem>
                         <SelectItem value="8">8 jogadores</SelectItem>
+                        <SelectItem value="9">9 jogadores</SelectItem>
                         <SelectItem value="10">10 jogadores</SelectItem>
+                        <SelectItem value="11">11 jogadores</SelectItem>
                         <SelectItem value="12">12 jogadores</SelectItem>
+                        <SelectItem value="13">13 jogadores</SelectItem>
+                        <SelectItem value="14">14 jogadores</SelectItem>
+                        <SelectItem value="15">15 jogadores</SelectItem>
                         <SelectItem value="16">16 jogadores</SelectItem>
+                        <SelectItem value="17">17 jogadores</SelectItem>
+                        <SelectItem value="18">18 jogadores</SelectItem>
+                        <SelectItem value="19">19 jogadores</SelectItem>
+                        <SelectItem value="20">20 jogadores</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -334,7 +343,7 @@ const CreateTournament = () => {
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Label htmlFor="toleranceMinutes">Tempo de tolerância para início (minutos)</Label>
+                    <Label htmlFor="toleranceMinutes">Tempo de tolerância</Label>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -401,7 +410,7 @@ const CreateTournament = () => {
                           <HelpCircle className="h-4 w-4 text-muted-foreground" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
-                          <p>Escolha o que deve acontecer se um jogador desconectar: encerrar, reiniciar ou reiniciar N vezes antes de encerrar. Máximo de 3 reinícios.</p>
+                          <p>Escolha o que deve acontecer se um jogador desconectar: encerrar ou reiniciar até X vezes, depois encerrar (Máximo de 3 reinícios).</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -415,8 +424,7 @@ const CreateTournament = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="end">Encerrar jogo</SelectItem>
-                      <SelectItem value="restart">Reiniciar jogo</SelectItem>
-                      <SelectItem value="restart_then_end">Reiniciar até X vezes, depois encerrar</SelectItem>
+                      <SelectItem value="restart_then_end">Reiniciar e depois encerrar</SelectItem>
                     </SelectContent>
                   </Select>
                   {formData.disconnectAction === "restart_then_end" && (
@@ -439,7 +447,6 @@ const CreateTournament = () => {
                   )}
                   <p className="text-sm text-muted-foreground">
                     {formData.disconnectAction === "end" && "Em caso de disconnect, a partida será finalizada imediatamente."}
-                    {formData.disconnectAction === "restart" && "Em caso de disconnect, a partida será reiniciada automaticamente."}
                     {formData.disconnectAction === "restart_then_end" && `A partida pode ser reiniciada até ${formData.disconnectMaxRestarts} ${formData.disconnectMaxRestarts === "1" ? "vez" : "vezes"}, depois será encerrada.`}
                   </p>
                 </div>
