@@ -284,18 +284,7 @@ const CreateTournament = () => {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Label htmlFor="maxPlayers">Número de Jogadores</Label>
-                      {formData.tournamentType === "league" && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Pontos corridos permite números ímpares (ex.: 3 amigos em ida e volta)</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
+                      
                     </div>
                     <Select
                       value={formData.maxPlayers}
