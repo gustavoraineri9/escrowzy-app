@@ -209,44 +209,6 @@ export type Database = {
           },
         ]
       }
-      invites: {
-        Row: {
-          created_at: string
-          id: string
-          receiver_id: string
-          sender_id: string
-          status: string
-          tournament_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          receiver_id: string
-          sender_id: string
-          status?: string
-          tournament_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          receiver_id?: string
-          sender_id?: string
-          status?: string
-          tournament_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invites_tournament_id_fkey"
-            columns: ["tournament_id"]
-            isOneToOne: false
-            referencedRelation: "tournaments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       participants: {
         Row: {
           gamertag: string | null
@@ -324,6 +286,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      tournament_invites: {
+        Row: {
+          created_at: string
+          id: string
+          receiver_id: string
+          sender_id: string
+          status: string
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          receiver_id: string
+          sender_id: string
+          status?: string
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          receiver_id?: string
+          sender_id?: string
+          status?: string
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invites_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tournaments: {
         Row: {
