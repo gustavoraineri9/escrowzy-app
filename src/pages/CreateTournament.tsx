@@ -41,7 +41,17 @@ const CreateTournament = () => {
     if (formData.adjudicationMethod === "ai_analysis") {
       toast({
         title: "Recurso indisponível",
-        description: "Análise por IA ainda não está disponível.",
+        description: "Análise por IA — Em Breve",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validar que pro-clubs não pode ser selecionado
+    if (formData.gameMode === "pro-clubs") {
+      toast({
+        title: "Recurso indisponível",
+        description: "Modo Pro Clubs — Em Breve",
         variant: "destructive",
       });
       return;
@@ -211,7 +221,12 @@ const CreateTournament = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ultimate-team">Ultimate Team</SelectItem>
-                        <SelectItem value="pro-clubs">Pro Clubs</SelectItem>
+                        <SelectItem value="pro-clubs" disabled className="opacity-50 cursor-not-allowed text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <span>Pro Clubs</span>
+                            <span className="text-xs">— Em Breve</span>
+                          </div>
+                        </SelectItem>
                         <SelectItem value="torneio-equipes">Torneio entre Equipes</SelectItem>
                       </SelectContent>
                     </Select>
@@ -230,7 +245,6 @@ const CreateTournament = () => {
                     <SelectContent>
                       <SelectItem value="knockout">Mata-mata</SelectItem>
                       <SelectItem value="league">Pontos corridos</SelectItem>
-                      <SelectItem value="groups-knockout">Grupos + Mata-mata</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -371,10 +385,10 @@ const CreateTournament = () => {
                       <SelectItem value="mutual_decision">
                         Decisão Mútua
                       </SelectItem>
-                      <SelectItem value="ai_analysis" disabled className="opacity-50 cursor-not-allowed">
-                        <div className="flex flex-col">
+                      <SelectItem value="ai_analysis" disabled className="opacity-50 cursor-not-allowed text-muted-foreground">
+                        <div className="flex items-center gap-2">
                           <span>Análise por IA</span>
-                          <span className="text-xs text-muted-foreground">Recurso indisponível no momento</span>
+                          <span className="text-xs">— Em Breve</span>
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -382,7 +396,7 @@ const CreateTournament = () => {
                   <p className="text-sm text-muted-foreground">
                     {formData.adjudicationMethod === "mutual_decision"
                       ? "Ambos os jogadores devem inserir resultados idênticos para confirmar o vencedor. Em caso de divergência, anexar evidências para que o suporte determine o vencedor."
-                      : "Futuro: Análise por IA — recurso indisponível no momento."}
+                      : "Análise por IA — Em Breve"}
                   </p>
                 </div>
 
