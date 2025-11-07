@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getTournamentDetails, joinTournament } from "@/services/tournamentService";
+import { getTournamentDetails, joinTournament, leaveTournament } from "@/services/tournamentService";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,14 @@ import {
   Users,
   Calendar,
   MapPin,
-  AlertCircle
+  AlertCircle,
+  LogOut
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TournamentBracket } from "@/components/TournamentBracket";
 import { TournamentTable } from "@/components/TournamentTable";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LeaveTournamentDialog } from "@/components/LeaveTournamentDialog";
 
 interface Participant {
   id: string;
@@ -47,6 +49,7 @@ const TournamentParticipantView = () => {
   const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [isUserParticipant, setIsUserParticipant] = useState(false);
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchTournament = async () => {
@@ -107,6 +110,31 @@ const TournamentParticipantView = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLeaveTournament = async () => {
+    if (!id || !currentUser || !tournament) return;
+    
+    try {
+      await leaveTournament(id, currentUser.id, tournament.owner_id);
+      
+      // Atualizar a lista de participantes removendo o usuário
+      setParticipants(prev => prev.filter(p => p.user_id !== currentUser.id));
+      setIsUserParticipant(false);
+      setLeaveDialogOpen(false);
+      
+      toast({
+        title: "Você saiu do campeonato.",
+        description: "Sua participação foi removida com sucesso.",
+      });
+    } catch (err: any) {
+      console.error("Erro ao sair do torneio:", err);
+      toast({
+        title: "Erro ao sair",
+        description: err.message || "Não foi possível sair do campeonato. Tente novamente.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -269,15 +297,27 @@ const TournamentParticipantView = () => {
                         <p className="text-sm text-muted-foreground">@{participant.profiles?.display_name || "N/A"}</p>
                       </div>
                     </div>
-                    <Badge 
-                      className={
-                        participant.status === "paid"
-                          ? "bg-success/10 text-success border-success/20"
-                          : "bg-warning/10 text-warning border-warning/20"
-                      }
-                    >
-                      {participant.status === "paid" ? "Confirmado" : "Pendente"}
-                    </Badge>
+                    <div className="flex items-center gap-3">
+                      <Badge 
+                        className={
+                          participant.status === "paid"
+                            ? "bg-success/10 text-success border-success/20"
+                            : "bg-warning/10 text-warning border-warning/20"
+                        }
+                      >
+                        {participant.status === "paid" ? "Confirmado" : "Pendente"}
+                      </Badge>
+                      {participant.user_id === currentUser?.id && tournament?.owner_id !== currentUser?.id && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setLeaveDialogOpen(true)}
+                        >
+                          <LogOut className="w-4 h-4 mr-2" />
+                          Sair do Campeonato
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))
               ) : (
@@ -319,6 +359,13 @@ const TournamentParticipantView = () => {
           </CardContent>
         </Card>
       </main>
+
+      <LeaveTournamentDialog
+        open={leaveDialogOpen}
+        onOpenChange={setLeaveDialogOpen}
+        onConfirm={handleLeaveTournament}
+        tournamentTitle={tournament?.title || ""}
+      />
     </div>
   );
 };

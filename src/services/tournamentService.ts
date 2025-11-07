@@ -241,3 +241,24 @@ export const joinTournament = async (tournamentId: string, userId: string, gamer
   }
   return data;
 };
+
+export const leaveTournament = async (tournamentId: string, userId: string, ownerId: string) => {
+  // Verificar se o usuário não é o owner
+  if (userId === ownerId) {
+    throw new Error("O host não pode sair do campeonato usando esta função. Use Cancelar Campeonato.");
+  }
+
+  // Atualizar o status do participante para 'left'
+  const { error } = await supabase
+    .from("participants" as any)
+    .update({ status: "left" })
+    .eq("tournament_id", tournamentId)
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("Erro ao sair do torneio:", error);
+    throw error;
+  }
+  
+  return true;
+};
