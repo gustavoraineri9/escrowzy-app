@@ -314,8 +314,8 @@ const CreateTournament = () => {
 	                              return num % 2 === 0; // Mata-mata: apenas pares
 	                            }
 	                            if (formData.tournamentType === "league") {
-	                              return num % 2 !== 0; // Pontos corridos: apenas ímpares
-	                            }
+                               return true; // Pontos corridos: todos os números (pares e ímpares)
+                              }
 	                            return true; // Outros tipos: todos
 	                          })
 	                          .map(num => (
