@@ -174,12 +174,23 @@ const TournamentParticipantView = () => {
                 {tournament?.game} • {tournament?.game_mode} • {tournament?.public ? "Público" : "Privado"}
               </p>
             </div>
-            {getStatusBadge()}
-            {!isUserParticipant && currentUser && tournament && (
-              <Button onClick={handleJoinTournament} disabled={loading || availableSlots <= 0}>
-                {availableSlots <= 0 ? "Vagas Esgotadas" : "Participar"}
-              </Button>
-            )}
+            <div className="flex items-center gap-3">
+              {getStatusBadge()}
+              {!isUserParticipant && currentUser && tournament && (
+                <Button onClick={handleJoinTournament} disabled={loading || availableSlots <= 0}>
+                  {availableSlots <= 0 ? "Vagas Esgotadas" : "Participar"}
+                </Button>
+              )}
+              {isUserParticipant && currentUser && tournament?.owner_id !== currentUser?.id && (
+                <Button
+                  variant="destructive"
+                  onClick={() => setLeaveDialogOpen(true)}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair do Campeonato
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -297,27 +308,15 @@ const TournamentParticipantView = () => {
                         <p className="text-sm text-muted-foreground">@{participant.profiles?.display_name || "N/A"}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Badge 
-                        className={
-                          participant.status === "paid"
-                            ? "bg-success/10 text-success border-success/20"
-                            : "bg-warning/10 text-warning border-warning/20"
-                        }
-                      >
-                        {participant.status === "paid" ? "Confirmado" : "Pendente"}
-                      </Badge>
-                      {participant.user_id === currentUser?.id && tournament?.owner_id !== currentUser?.id && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setLeaveDialogOpen(true)}
-                        >
-                          <LogOut className="w-4 h-4 mr-2" />
-                          Sair do Campeonato
-                        </Button>
-                      )}
-                    </div>
+                    <Badge 
+                      className={
+                        participant.status === "paid"
+                          ? "bg-success/10 text-success border-success/20"
+                          : "bg-warning/10 text-warning border-warning/20"
+                      }
+                    >
+                      {participant.status === "paid" ? "Confirmado" : "Pendente"}
+                    </Badge>
                   </div>
                 ))
               ) : (
