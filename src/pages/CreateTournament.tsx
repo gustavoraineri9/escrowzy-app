@@ -221,13 +221,13 @@ const CreateTournament = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ultimate-team">Ultimate Team</SelectItem>
+                        <SelectItem value="torneio-equipes">Torneio entre Equipes</SelectItem>
                         <SelectItem value="pro-clubs" disabled className="opacity-50 cursor-not-allowed text-muted-foreground">
                           <div className="flex items-center gap-2">
                             <span>Pro Clubs</span>
                             <span className="text-xs">— Em Breve</span>
                           </div>
                         </SelectItem>
-                        <SelectItem value="torneio-equipes">Torneio entre Equipes</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
