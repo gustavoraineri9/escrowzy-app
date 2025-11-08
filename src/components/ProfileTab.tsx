@@ -201,7 +201,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
           setOpponentMap({});
         }
       } catch (err) {
-        console.error("Erro inesperado ao buscar H2H:", err);
+        console.error("Erro inesperado ao buscar Estatísticas:", err);
         setH2hRecords([]);
         setOpponentMap({});
       } finally {
@@ -531,7 +531,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                         <span className="text-sm text-muted-foreground">Carregando histórico...</span>
                       </div>
                     ) : recentMatches.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">Nenhuma interação head-to-head encontrada.</p>
+                      <p className="text-sm text-muted-foreground">Nenhuma interação encontrada.</p>
                     ) : (
                       recentMatches.map((match, index) => (
                         <div key={match.opponentId + index} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
@@ -606,10 +606,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
         <TabsContent value="statistics" className="space-y-6">
           <div className="space-y-6"> {/* Garante que é um único container */}
             <div>
-              <h3 className="text-xl font-bold mb-4">Desempenho Head-to-Head</h3>
+              <h3 className="text-xl font-bold mb-4">Desempenho</h3>
               <div className="space-y-4">
                 {perOpponentStats.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum dado head-to-head disponível.</p>
+                  <p className="text-sm text-muted-foreground">Nenhum dado disponível.</p>
                 ) : (
                   perOpponentStats.map((stat) => (
                     <Card key={stat.opponentId} className="glass-card">
@@ -704,6 +704,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                   disabled
                 />
               </div>
+              
 
               <Button onClick={handleSave} className="w-full" disabled={saving}>
                 <Save className="w-4 h-4 mr-2" />
