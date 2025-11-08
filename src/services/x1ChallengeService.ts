@@ -33,8 +33,14 @@ export async function createX1Challenge(
     .single();
 
   if (error) {
+    // Normalize and throw a JS Error with useful info so the caller pode extrair mensagem
     console.error("Erro ao criar X1 challenge:", error);
-    throw error;
+    const normalized = {
+      message: (error as any)?.message || "Erro ao criar desafio",
+      details: (error as any)?.details || (error as any)?.hint || null,
+      code: (error as any)?.code || null,
+    };
+    throw new Error(JSON.stringify(normalized));
   }
 
   return data as X1Challenge;

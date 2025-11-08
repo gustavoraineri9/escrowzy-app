@@ -120,7 +120,26 @@ export const X1ChallengeDialog = ({ open, onOpenChange }: X1ChallengeDialogProps
       onOpenChange(false);
     } catch (err) {
       console.error("Erro ao criar desafio:", err);
-      toast({ title: "Erro", description: "Não foi possível criar o desafio. Tente novamente.", variant: "destructive" });
+
+      // Tenta extrair mensagem detalhada enviada pelo service (throw new Error(JSON.stringify(...)))
+      let message = "Não foi possível criar o desafio. Tente novamente.";
+      try {
+        if (err instanceof Error) {
+          const parsed = JSON.parse(err.message);
+          if (parsed && parsed.message) {
+            message = parsed.message + (parsed.details ? ` — ${parsed.details}` : "");
+          }
+        } else if (typeof err === "string") {
+          const parsed = JSON.parse(err);
+          message = parsed.message || message;
+        } else if ((err as any)?.message) {
+          message = (err as any).message;
+        }
+      } catch (parseErr) {
+        // fallback: mantém mensagem genérica
+      }
+
+      toast({ title: "Erro", description: message, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
