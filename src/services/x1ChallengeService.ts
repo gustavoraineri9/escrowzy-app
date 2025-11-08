@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface X1Challenge {
   id: string;
   challenger_id: string;
-  opponent_id: string;
+  challenged_id: string;
   game: string;
   bet_amount: number;
   status: string;
@@ -16,7 +16,7 @@ export interface X1Challenge {
  */
 export async function createX1Challenge(
   challengerId: string,
-  opponentId: string,
+  challengedId: string,
   game: string,
   betAmount: number,
 ): Promise<X1Challenge | null> {
@@ -24,7 +24,7 @@ export async function createX1Challenge(
     .from("x1_challenges")
     .insert({
       challenger_id: challengerId,
-      opponent_id: opponentId,
+      challenged_id: challengedId,
       game,
       bet_amount: betAmount,
       status: "pending",
