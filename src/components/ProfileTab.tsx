@@ -609,7 +609,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
               <h3 className="text-xl font-bold mb-4">Desempenho</h3>
               <div className="space-y-4">
                 {perOpponentStats.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum dado disponível.</p>
+                  <p className="text-sm text-muted-foreground">Nenhum dados disponível.</p>
                 ) : (
                   perOpponentStats.map((stat) => (
                     <Card key={stat.opponentId} className="glass-card">
@@ -704,7 +704,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                   disabled
                 />
               </div>
-              
+
 
               <Button onClick={handleSave} className="w-full" disabled={saving}>
                 <Save className="w-4 h-4 mr-2" />

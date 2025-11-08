@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -24,23 +24,75 @@ interface X1ChallengeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+import { supabase } from "@/integrations/supabase/client";
+import { buscarUsuarios, buscarAmigos } from "@/services/friendService";
 
-const mockFriends = [
-  { id: "1", name: "Carlos Silva", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos" },
-  { id: "2", name: "Maria Santos", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Maria" },
-  { id: "3", name: "Pedro Costa", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Pedro" },
-];
+type FriendItem = { id: string; name: string; avatar?: string | null };
+
 
 const games = ["FIFA 24", "CS2", "League of Legends", "Valorant", "Fortnite"];
 
 export const X1ChallengeDialog = ({ open, onOpenChange }: X1ChallengeDialogProps) => {
   const [selectedFriend, setSelectedFriend] = useState<string>("");
-  const [searchId, setSearchId] = useState("");
+  const [friends, setFriends] = useState<FriendItem[]>([]);
+  const [searchName, setSearchName] = useState("");
+  const [searchResults, setSearchResults] = useState<FriendItem[]>([]);
   const [selectedGame, setSelectedGame] = useState("");
   const [betAmount, setBetAmount] = useState("");
 
+  useEffect(() => {
+    // Carrega a lista de amigos quando o diálogo é aberto
+    const loadFriends = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const dados = await buscarAmigos(user.id);
+        const mapped: FriendItem[] = dados.map((f: any) => ({
+          id: f.perfis?.id ?? f.id_amigo ?? f.id,
+          name: f.perfis?.nome_exibicao ?? f.perfis?.nome_completo ?? "Usuário",
+          avatar: f.perfis?.url_avatar ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(f.perfis?.nome_completo ?? f.perfis?.nome_exibicao ?? f.id)}`,
+        }));
+        setFriends(mapped);
+      } catch (err) {
+        console.error("Erro ao carregar amigos:", err);
+      }
+    };
+
+    if (open) {
+      loadFriends();
+      setSearchResults([]);
+      setSearchName("");
+      setSelectedFriend("");
+    }
+  }, [open]);
+
+  const handleSearchByName = async () => {
+    if (!searchName.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const results = await buscarUsuarios(searchName.trim(), user.id);
+      const mapped: FriendItem[] = (results || []).map((r: any) => ({
+        id: r.id,
+        name: r.display_name ?? r.full_name ?? r.displayName ?? r.fullName ?? "Usuário",
+        avatar: r.avatar_url ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(r.display_name ?? r.full_name ?? r.id)}`,
+      }));
+
+      setSearchResults(mapped);
+    } catch (err) {
+      console.error("Erro ao buscar usuário por nome:", err);
+      setSearchResults([]);
+    }
+  };
+
   const handleChallenge = () => {
-    console.log("Desafio criado:", { selectedFriend, searchId, selectedGame, betAmount });
+    console.log("Desafio criado:", { selectedFriend, selectedGame, betAmount });
     onOpenChange(false);
   };
 
@@ -62,7 +114,7 @@ export const X1ChallengeDialog = ({ open, onOpenChange }: X1ChallengeDialogProps
             </TabsTrigger>
             <TabsTrigger value="search">
               <Search className="w-4 h-4 mr-2" />
-              Buscar ID
+              Buscar por nome
             </TabsTrigger>
           </TabsList>
 
@@ -70,7 +122,7 @@ export const X1ChallengeDialog = ({ open, onOpenChange }: X1ChallengeDialogProps
             <div className="space-y-2">
               <Label>Selecione um Amigo</Label>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {mockFriends.map((friend) => (
+                {friends.map((friend) => (
                   <div
                     key={friend.id}
                     className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -81,7 +133,7 @@ export const X1ChallengeDialog = ({ open, onOpenChange }: X1ChallengeDialogProps
                     onClick={() => setSelectedFriend(friend.id)}
                   >
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={friend.avatar} alt={friend.name} />
+                      <AvatarImage src={friend.avatar || undefined} alt={friend.name} />
                       <AvatarFallback>{friend.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                     </Avatar>
                     <span className="font-medium">{friend.name}</span>
@@ -93,13 +145,38 @@ export const X1ChallengeDialog = ({ open, onOpenChange }: X1ChallengeDialogProps
 
           <TabsContent value="search" className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="search-id">ID do Jogador</Label>
-              <Input
-                id="search-id"
-                placeholder="Digite o ID do jogador"
-                value={searchId}
-                onChange={(e) => setSearchId(e.target.value)}
-              />
+              <Label htmlFor="search-name">Nome do Jogador</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="search-name"
+                  placeholder="Digite o nome do jogador"
+                  value={searchName}
+                  onChange={(e) => setSearchName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearchByName()}
+                />
+                <Button onClick={handleSearchByName}>Buscar</Button>
+              </div>
+
+              <div className="space-y-2 max-h-48 overflow-y-auto pt-2">
+                {searchResults.map((r) => (
+                  <div
+                    key={r.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      selectedFriend === r.id ? "border-primary bg-primary/10" : "hover:bg-muted"
+                    }`}
+                    onClick={() => setSelectedFriend(r.id)}
+                  >
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={r.avatar || undefined} alt={r.name} />
+                      <AvatarFallback>{r.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium">{r.name}</span>
+                  </div>
+                ))}
+                {!searchResults.length && searchName.trim() && (
+                  <p className="text-center text-muted-foreground">Nenhum usuário encontrado.</p>
+                )}
+              </div>
             </div>
           </TabsContent>
         </Tabs>
