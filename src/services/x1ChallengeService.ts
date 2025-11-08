@@ -22,13 +22,26 @@ export async function createX1Challenge(
 ): Promise<X1Challenge | null> {
   const { data, error } = await supabase
     .from("x1_challenges")
-    .insert({
-      challenger_id: challengerId,
-      challenged_id: challengedId,
-      game,
-      bet_amount: betAmount,
-      status: "pending",
-    })
+    .insert((() => {
+      // Construir o payload explicitamente e defensivamente
+      const payload: any = {
+        challenger_id: challengerId,
+        challenged_id: challengedId,
+        game,
+        bet_amount: betAmount,
+        status: "pending",
+      };
+
+      // Log para diagnóstico (temporário)
+      try {
+        // eslint-disable-next-line no-console
+        console.info("[x1ChallengeService] inserting payload:", JSON.stringify(payload));
+      } catch (e) {
+        // ignore
+      }
+
+      return payload;
+    })())
     .select()
     .single();
 
