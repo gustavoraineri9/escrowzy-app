@@ -15,6 +15,7 @@ import { Search, Mail, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { sendTournamentInvites } from "@/services/inviteService";
+import { buscarAmigos } from "@/services/friendService";
 
 interface SendInvitesDialogProps {
   open: boolean;
@@ -72,25 +73,10 @@ export function SendInvitesDialog({
       if (!user) return;
       
       setCurrentUserId(user.id);
-      
-      // Buscar amigos - obtemos friend_id e depois buscamos os perfis
-      const { data: friendsData, error } = await supabase
-        .from("friends")
-        .select("friend_id")
-        .eq("user_id", user.id)
-        .eq("status", "accepted");
+      // Buscar amigos usando o serviço que já trata ambos os lados da relação
+      const amigos = await buscarAmigos(user.id);
 
-      if (error) {
-        console.error("Erro ao buscar amigos:", error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar a lista de amigos.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!friendsData || friendsData.length === 0) {
+      if (!amigos || amigos.length === 0) {
         setFriends([]);
         toast({
           title: "Sem amigos",
@@ -99,38 +85,14 @@ export function SendInvitesDialog({
         return;
       }
 
-      // Buscar perfis dos amigos
-      const friendIds = friendsData.map(f => f.friend_id);
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, display_name, full_name, avatar_url")
-        .in("id", friendIds);
-
-      if (profilesError) {
-        console.error("Erro ao buscar perfis dos amigos:", profilesError);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar os perfis dos amigos.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const friendsList: User[] = (profilesData || []).map(profile => ({
-        id: profile.id,
-        display_name: profile.display_name || "",
-        full_name: profile.full_name || "",
-        avatar_url: profile.avatar_url,
+      const friendsList: User[] = amigos.map((a) => ({
+        id: a.perfis?.id ?? a.id_amigo ?? a.id,
+        display_name: a.perfis?.nome_exibicao ?? "",
+        full_name: a.perfis?.nome_completo ?? "",
+        avatar_url: a.perfis?.url_avatar ?? undefined,
       }));
-      
-      setFriends(friendsList);
-      
-      if (friendsList.length === 0) {
-        toast({
-          title: "Sem amigos",
-          description: "Você ainda não tem amigos adicionados.",
-        });
-      }
+
+      setFriends(friendsList);
     } catch (error) {
       console.error("Erro ao carregar amigos:", error);
       toast({
@@ -236,7 +198,7 @@ export function SendInvitesDialog({
         <DialogHeader>
           <DialogTitle>Enviar Convites</DialogTitle>
           <DialogDescription>
-            Convide amigos ou busque jogadores por player_id para participar de "{tournamentName}"
+            Convide amigos ou busque jogadores por nome do usuario para participar de "{tournamentName}"
           </DialogDescription>
         </DialogHeader>
 
@@ -267,7 +229,7 @@ export function SendInvitesDialog({
             ) : displayedUsers.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 {searchQuery.length >= 2
-                  ? "Nenhum jogador encontrado com esse player_id"
+                  ? "Nenhum jogador encontrado com esse nome"
                   : "Sem amigos encontrados. Use a busca para encontrar jogadores."}
               </div>
             ) : (
