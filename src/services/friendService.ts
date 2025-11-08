@@ -97,42 +97,45 @@ export async function buscarEstatisticasConfrontoDireto(idUsuario: string, idAmi
 }
 
 export async function buscarAmigos(idUsuario: string): Promise<Amigo[]> {
+  // Busca amizades onde o usuário é user_id ou friend_id (aceitas)
   const { data, error } = await supabase
     .from("friends")
     .select(`
       id,
       user_id,
       friend_id,
+      status,
       created_at,
-      profiles!friends_friend_id_fkey(
-        id,
-        email,
-        full_name,
-        display_name,
-        avatar_url
-      )
+      profiles_user:profiles!user_id(id, email, full_name, display_name, avatar_url),
+      profiles_friend:profiles!friend_id(id, email, full_name, display_name, avatar_url)
     `)
-    .eq("user_id", idUsuario);
+    .eq("status", "accepted")
+    .or(`user_id.eq.${idUsuario},friend_id.eq.${idUsuario}`);
 
   if (error) {
     console.error("Erro ao buscar amigos:", error);
     return [];
   }
-  
-  return (data || []).map((item: any) => ({
-    id: item.id,
-    id_usuario: item.user_id,
-    id_amigo: item.friend_id,
-    criado_em: item.created_at,
-    perfis: item.profiles ? {
-      id: item.profiles.id,
-      auth_uid: item.profiles.id,
-      email: item.profiles.email,
-      nome_completo: item.profiles.full_name,
-      nome_exibicao: item.profiles.display_name,
-      url_avatar: item.profiles.avatar_url
-    } : null
-  }));
+
+  return (data || []).map((item: any) => {
+    // Determina qual perfil é o amigo (o que não é o usuário atual)
+    const friendProfile = item.user_id === idUsuario ? item.profiles_friend : item.profiles_user;
+
+    return {
+      id: item.id,
+      id_usuario: item.user_id,
+      id_amigo: item.friend_id,
+      criado_em: item.created_at,
+      perfis: friendProfile ? {
+        id: friendProfile.id,
+        auth_uid: friendProfile.id,
+        email: friendProfile.email,
+        nome_completo: friendProfile.full_name,
+        nome_exibicao: friendProfile.display_name,
+        url_avatar: friendProfile.avatar_url
+      } : null
+    } as Amigo;
+  });
 }
 
 export async function buscarSolicitacoesPendentes(idUsuario: string): Promise<SolicitacaoAmizade[]> {
