@@ -216,7 +216,7 @@ export const X1ChallengeDialog = ({ open, onOpenChange }: X1ChallengeDialogProps
           </Button>
           <Button
             onClick={handleChallenge}
-            disabled={(!selectedFriend && !searchId) || !selectedGame || !betAmount}
+            disabled={(!selectedFriend && !searchName) || !selectedGame || !betAmount}
             className="flex-1 gradient-primary"
           >
             Enviar Desafio
