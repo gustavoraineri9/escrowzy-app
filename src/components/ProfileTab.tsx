@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 // 💡 IMPORTAÇÕES DINÂMICAS
 import { profileService, ProfileType, ProfileWithAchievements } from "@/services/profileService";
 import { achievementService, AchievementType } from "@/services/achievementService"; 
+import { supabase } from "@/integrations/supabase/client";
 
 import {
   Dialog,
@@ -24,28 +25,32 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 // ----------------------------------------------------
-// MOCKS DE ESTATÍSTICAS (MANTIDOS INTACTOS)
+// DADOS DERIVADOS DE head_to_head_stats
 // ----------------------------------------------------
-const mockStats = {
-  totalWins: 142,
-  winRate: 68,
-  totalPrize: 1250,
-  bestGame: "EA FC 25",
-};
+// Vamos buscar os registros head-to-head para o usuário logado e derivar
+// KPIs (vitórias, taxa, prêmios) e uma lista recente de oponentes.
 
-const mockRecentMatches = [
-  { game: "EA FC 25", opponent: "PlayerX", result: "win", date: "Hoje" },
-  { game: "CS2", opponent: "NoobMaster", result: "win", date: "Ontem" },
-  { game: "EA FC 25", opponent: "ProPlayer", result: "loss", date: "2 dias atrás" },
-  { game: "Valorant", opponent: "SharpShooter", result: "win", date: "3 dias atrás" },
-];
+interface H2HRecord {
+  id: string;
+  user_a_id: string;
+  user_b_id: string;
+  wins_a: number;
+  wins_b: number;
+  win_streak_a: number | null;
+  win_streak_b: number | null;
+  balance_a: number;
+  balance_b: number;
+  updated_at: string;
+}
 
-const mockGameStats = [
-  { game: "EA FC 25", wins: 45, losses: 15, winRate: 75, balance: 450 },
-  { game: "CS2", wins: 38, losses: 22, winRate: 63, balance: 320 },
-  { game: "Valorant", wins: 32, losses: 18, winRate: 64, balance: 280 },
-  { game: "League of Legends", wins: 27, losses: 15, winRate: 64, balance: 200 },
-];
+interface RecentMatchItem {
+  opponentId: string;
+  opponentName: string;
+  winsForUser: number;
+  winsForOpponent: number;
+  balance: number;
+  updatedAt: string;
+}
 
 // DiceBear Avatar Styles
 const avatarStyles = [
@@ -93,6 +98,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
     // ESTADOS PARA CONQUISTAS DINÂMICAS
     const [allAchievements, setAllAchievements] = useState<AchievementType[]>([]);
     const [isLoadingAchievements, setIsLoadingAchievements] = useState(true);
+
+    // Estados para head-to-head
+    const [h2hRecords, setH2hRecords] = useState<H2HRecord[]>([]);
+    const [isLoadingH2H, setIsLoadingH2H] = useState(true);
+    const [opponentMap, setOpponentMap] = useState<Record<string, { display_name?: string; full_name?: string; avatar_url?: string }>>({});
 
   useEffect(() => {
     setEditedProfile(profile);
@@ -142,6 +152,131 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
             };
         });
     }, [profile, allAchievements]);
+
+  // ----------------------------------------------------
+  // BUSCA E CÁLCULO A PARTIR DE head_to_head_stats
+  // ----------------------------------------------------
+  useEffect(() => {
+    const fetchH2H = async () => {
+      if (!profile?.id) {
+        setH2hRecords([]);
+        setIsLoadingH2H(false);
+        return;
+      }
+
+      setIsLoadingH2H(true);
+      try {
+        const { data, error } = await supabase
+          .from("head_to_head_stats")
+          .select("*")
+          .or(`user_a_id.eq.${profile.id},user_b_id.eq.${profile.id}`)
+          .order("updated_at", { ascending: false });
+
+        if (error) {
+          console.error("Erro ao buscar head_to_head_stats:", error);
+          setH2hRecords([]);
+          return;
+        }
+
+        const records = (data || []) as H2HRecord[];
+        setH2hRecords(records);
+
+        // Buscar perfis dos oponentes para mostrar nome/avatar
+        const opponentIds = Array.from(new Set(records.map(r => (r.user_a_id === profile.id ? r.user_b_id : r.user_a_id))));
+        if (opponentIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from("profiles")
+            .select("id,display_name,full_name,avatar_url")
+            .in("id", opponentIds);
+
+          if (profilesError) {
+            console.error("Erro ao buscar perfis dos oponentes:", profilesError);
+            setOpponentMap({});
+          } else {
+            const map: Record<string, { display_name?: string; full_name?: string; avatar_url?: string }> = {};
+            (profilesData || []).forEach((p: any) => { map[p.id] = p; });
+            setOpponentMap(map);
+          }
+        } else {
+          setOpponentMap({});
+        }
+      } catch (err) {
+        console.error("Erro inesperado ao buscar H2H:", err);
+        setH2hRecords([]);
+        setOpponentMap({});
+      } finally {
+        setIsLoadingH2H(false);
+      }
+    };
+
+    fetchH2H();
+  }, [profile?.id]);
+
+  // Computações derivadas (KPIs, lista recente, ranking por oponente)
+  const {
+    totalWins,
+    totalLosses,
+    totalPrize,
+    winRate,
+    bestOpponent,
+    recentMatches,
+    perOpponentStats,
+  } = useMemo(() => {
+    if (!h2hRecords || h2hRecords.length === 0 || !profile?.id) {
+      return {
+        totalWins: 0,
+        totalLosses: 0,
+        totalPrize: 0,
+        winRate: 0,
+        bestOpponent: null as string | null,
+        recentMatches: [] as RecentMatchItem[],
+        perOpponentStats: [] as RecentMatchItem[],
+      };
+    }
+
+    let wins = 0;
+    let losses = 0;
+    let prize = 0;
+
+    const perOpp: RecentMatchItem[] = h2hRecords.map((r) => {
+      const isA = r.user_a_id === profile.id;
+      const userWins = isA ? (r.wins_a || 0) : (r.wins_b || 0);
+      const oppWins = isA ? (r.wins_b || 0) : (r.wins_a || 0);
+      const balance = isA ? (r.balance_a || 0) : (r.balance_b || 0);
+      wins += userWins;
+      losses += oppWins;
+      prize += balance;
+
+      const opponentId = isA ? r.user_b_id : r.user_a_id;
+      const opponent = opponentMap[opponentId];
+
+      return {
+        opponentId,
+        opponentName: opponent ? (opponent.display_name || opponent.full_name || opponentId) : opponentId,
+        winsForUser: userWins,
+        winsForOpponent: oppWins,
+        balance,
+        updatedAt: r.updated_at,
+      } as RecentMatchItem;
+    });
+
+    const totalMatches = wins + losses;
+    const wRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
+
+    // Melhor oponente = aquele com maior número de vitórias do usuário
+    const sortedByWins = perOpp.slice().sort((a, b) => b.winsForUser - a.winsForUser);
+    const bestOpp = sortedByWins.length > 0 ? sortedByWins[0].opponentName : null;
+
+    return {
+      totalWins: wins,
+      totalLosses: losses,
+      totalPrize: prize,
+      winRate: wRate,
+      bestOpponent: bestOpp,
+      recentMatches: perOpp.slice(0, 6),
+      perOpponentStats: perOpp,
+    };
+  }, [h2hRecords, opponentMap, profile?.id]);
 
   // ----------------------------------------------------
   // FUNÇÕES DE HANDLE (MANTIDAS INTACTAS)
@@ -317,7 +452,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                         <Trophy className="w-6 h-6 text-primary" />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold">{mockStats.totalWins}</p>
+                        <p className="text-2xl font-bold">{totalWins}</p>
                         <p className="text-sm text-muted-foreground">Vitórias Totais</p>
                       </div>
                     </div>
@@ -331,7 +466,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                         <PieChart className="w-6 h-6 text-success" />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold">{mockStats.winRate}%</p>
+                        <p className="text-2xl font-bold">{winRate}%</p>
                         <p className="text-sm text-muted-foreground">Taxa de Vitória</p>
                       </div>
                     </div>
@@ -345,7 +480,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                         <DollarSign className="w-6 h-6 text-warning" />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold">R$ {mockStats.totalPrize}</p>
+                        <p className="text-2xl font-bold">R$ {Number(totalPrize || 0).toFixed(2)}</p>
                         <p className="text-sm text-muted-foreground">Total em Prêmios</p>
                       </div>
                     </div>
@@ -359,8 +494,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
                         <Gamepad2 className="w-6 h-6 text-secondary" />
                       </div>
                       <div>
-                        <p className="text-xl font-bold">{mockStats.bestGame}</p>
-                        <p className="text-sm text-muted-foreground">Melhor Jogo</p>
+                        <p className="text-xl font-bold">{bestOpponent || "—"}</p>
+                        <p className="text-sm text-muted-foreground">Melhor Oponente</p>
                       </div>
                     </div>
                   </CardContent>
@@ -389,24 +524,33 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
               <h3 className="text-xl font-bold mb-4">Histórico Recente</h3>
               <Card className="glass-card">
                 <CardContent className="pt-6">
-                  <div className="space-y-3">
-                    {mockRecentMatches.map((match, index) => (
-                      <div key={index} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                        <div className="flex items-center gap-3">
-                          <Gamepad2 className="w-5 h-5 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">{match.game}</p>
-                            <p className="text-sm text-muted-foreground">vs {match.opponent}</p>
+                    <div className="space-y-3">
+                    {isLoadingH2H ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="animate-spin h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Carregando histórico...</span>
+                      </div>
+                    ) : recentMatches.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Nenhuma interação head-to-head encontrada.</p>
+                    ) : (
+                      recentMatches.map((match, index) => (
+                        <div key={match.opponentId + index} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                          <div className="flex items-center gap-3">
+                            <Gamepad2 className="w-5 h-5 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium">{match.opponentName}</p>
+                              <p className="text-sm text-muted-foreground">Vitórias: {match.winsForUser} • Contra: {match.winsForOpponent}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Badge className={match.winsForUser >= match.winsForOpponent ? 'bg-success/20 text-success hover:bg-success/30' : 'bg-destructive/20 text-destructive hover:bg-destructive/30'}>
+                              {match.winsForUser >= match.winsForOpponent ? 'Favorável' : 'Desfavorável'}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">{formatDate(match.updatedAt)}</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <Badge className={match.result === 'win' ? 'bg-success/20 text-success hover:bg-success/30' : 'bg-destructive/20 text-destructive hover:bg-destructive/30'}>
-                            {match.result === 'win' ? 'Vitória' : 'Derrota'}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground">{match.date}</span>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -462,42 +606,42 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, setProfile }) =
         <TabsContent value="statistics" className="space-y-6">
           <div className="space-y-6"> {/* Garante que é um único container */}
             <div>
-              <h3 className="text-xl font-bold mb-4">Desempenho por Jogo</h3>
+              <h3 className="text-xl font-bold mb-4">Desempenho Head-to-Head</h3>
               <div className="space-y-4">
-                {mockGameStats.map((stat, index) => (
-                  <Card key={index} className="glass-card">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Gamepad2 className="w-5 h-5 text-muted-foreground" />
-                          <p className="font-medium">{stat.game}</p>
+                {perOpponentStats.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum dado head-to-head disponível.</p>
+                ) : (
+                  perOpponentStats.map((stat) => (
+                    <Card key={stat.opponentId} className="glass-card">
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Gamepad2 className="w-5 h-5 text-muted-foreground" />
+                            <p className="font-medium">{stat.opponentName}</p>
+                          </div>
+                          <div className="flex items-center gap-4 text-sm">
+                            <Badge variant="secondary">{Math.round((stat.winsForUser / Math.max(1, stat.winsForUser + stat.winsForOpponent)) * 100)}% Win Rate</Badge>
+                            <span className="text-success font-bold">{Number(stat.balance || 0).toFixed(2)} R$</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <Badge variant="secondary">
-                            {stat.winRate}% Win Rate
-                          </Badge>
-                          <span className="text-success font-bold">
-                            +{stat.balance} R$
-                          </span>
+                        <div className="grid grid-cols-3 gap-4 mt-4 text-center">
+                          <div>
+                            <p className="text-xl font-bold text-success">{stat.winsForUser}</p>
+                            <p className="text-xs text-muted-foreground">Vitórias</p>
+                          </div>
+                          <div>
+                            <p className="text-xl font-bold text-destructive">{stat.winsForOpponent}</p>
+                            <p className="text-xs text-muted-foreground">Derrotas</p>
+                          </div>
+                          <div>
+                            <p className="text-xl font-bold">{stat.winsForUser + stat.winsForOpponent}</p>
+                            <p className="text-xs text-muted-foreground">Total</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4 mt-4 text-center">
-                        <div>
-                          <p className="text-xl font-bold text-success">{stat.wins}</p>
-                          <p className="text-xs text-muted-foreground">Vitórias</p>
-                        </div>
-                        <div>
-                          <p className="text-xl font-bold text-destructive">{stat.losses}</p>
-                          <p className="text-xs text-muted-foreground">Derrotas</p>
-                        </div>
-                        <div>
-                          <p className="text-xl font-bold">{stat.wins + stat.losses}</p>
-                          <p className="text-xs text-muted-foreground">Total</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
             </div>
           </div>
