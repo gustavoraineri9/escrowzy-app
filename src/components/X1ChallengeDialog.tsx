@@ -19,6 +19,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { createX1Challenge } from "@/services/x1ChallengeService";
 
 interface X1ChallengeDialogProps {
   open: boolean;
@@ -39,6 +41,8 @@ export const X1ChallengeDialog = ({ open, onOpenChange }: X1ChallengeDialogProps
   const [searchResults, setSearchResults] = useState<FriendItem[]>([]);
   const [selectedGame, setSelectedGame] = useState("");
   const [betAmount, setBetAmount] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Carrega a lista de amigos quando o diálogo é aberto
@@ -91,9 +95,35 @@ export const X1ChallengeDialog = ({ open, onOpenChange }: X1ChallengeDialogProps
     }
   };
 
-  const handleChallenge = () => {
-    console.log("Desafio criado:", { selectedFriend, selectedGame, betAmount });
-    onOpenChange(false);
+  const handleChallenge = async () => {
+    // selectedFriend deve conter o id do usuário alvo
+    if (!selectedFriend) return;
+    if (!selectedGame || !betAmount) return;
+
+    try {
+      setIsSubmitting(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: "Erro", description: "Você precisa estar logado para criar um desafio.", variant: "destructive" });
+        return;
+      }
+
+      const bet = Number(betAmount);
+      if (Number.isNaN(bet) || bet <= 0) {
+        toast({ title: "Atenção", description: "Informe um valor de aposta válido.", variant: "destructive" });
+        return;
+      }
+
+      await createX1Challenge(user.id, selectedFriend, selectedGame, bet);
+
+      toast({ title: "Sucesso", description: "Desafio enviado com sucesso!" });
+      onOpenChange(false);
+    } catch (err) {
+      console.error("Erro ao criar desafio:", err);
+      toast({ title: "Erro", description: "Não foi possível criar o desafio. Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -216,7 +246,7 @@ export const X1ChallengeDialog = ({ open, onOpenChange }: X1ChallengeDialogProps
           </Button>
           <Button
             onClick={handleChallenge}
-            disabled={(!selectedFriend && !searchName) || !selectedGame || !betAmount}
+            disabled={isSubmitting || ((!selectedFriend && !searchName) || !selectedGame || !betAmount)}
             className="flex-1 gradient-primary"
           >
             Enviar Desafio
