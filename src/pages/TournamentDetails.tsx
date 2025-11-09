@@ -22,7 +22,9 @@ import {
   ArrowLeft,
   Mail,
   MoreVertical,
-  UserMinus
+  UserMinus,
+  Play, // Adicionado para o botão Iniciar
+  CreditCard // Adicionado para o botão Pagamento
 } from "lucide-react";
 import { TournamentBracket } from "@/components/TournamentBracket";
 import { TournamentTable } from "@/components/TournamentTable";
@@ -31,7 +33,7 @@ import { CancelTournamentDialog } from "@/components/CancelTournamentDialog";
 import { SendInvitesDialog } from "@/components/SendInvitesDialog";
 import { ParticipantStatsTab } from "@/components/ParticipantStatsTab";
 import { useToast } from "@/hooks/use-toast";
-import { getTournamentDetails, updateTournament, removeParticipantFromTournament, deleteTournament, leaveTournament } from "@/services/tournamentService";
+import { getTournamentDetails, updateTournament, removeParticipantFromTournament, deleteTournament, leaveTournament, startTournament } from "@/services/tournamentService";
 import { logAuditEvent } from "@/services/auditService";
 
 interface Participant {
@@ -97,11 +99,13 @@ const TournamentDetails = () => {
 
   // Verificar se o usuário atual é o host do torneio
   const isHost = currentUserId && tournament && currentUserId === tournament.owner_id;
+  const isParticipant = participants.some(p => p.user_id === currentUserId);
+  const isPaid = participants.some(p => p.user_id === currentUserId && p.status === "paid");
 
   const paidCount = participants.filter(p => p.status === "paid").length;
   const pendingCount = participants.filter(p => p.status === "pending").length;
   const availableSlots = (tournament?.max_participants || 0) - participants.length;
-
+// ... (continuação da Parte 1)
   const copyInviteLink = () => {
     if (tournament?.invite_link) {
       navigator.clipboard.writeText(tournament.invite_link);
@@ -115,7 +119,7 @@ const TournamentDetails = () => {
   const shareWhatsApp = () => {
     if (tournament?.title && tournament?.invite_link) {
       const message = `Participe do ${tournament.title}! Acesse: ${tournament.invite_link}`;
-      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+      window.open(`https://wa.me/?text=${encodeURIComponent(message )}`, "_blank");
     }
   };
 
@@ -229,6 +233,46 @@ const TournamentDetails = () => {
     }
   };
 
+  const handleStartTournament = async () => {
+    if (!id) return;
+
+    // Verificar se o usuário é o host
+    if (!isHost) {
+      toast({
+        title: "Permissão negada",
+        description: "Apenas o host pode iniciar o campeonato.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Lógica de validação: Mínimo de participantes, etc.
+    if (participants.length < 2) {
+      toast({
+        title: "Não é possível iniciar",
+        description: "O campeonato precisa de pelo menos 2 participantes para iniciar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await startTournament(id); // Assumindo que você tem um serviço para isso
+      setTournament((prev: any) => ({ ...prev, status: "in_progress" }));
+      toast({
+        title: "Campeonato iniciado!",
+        description: "O campeonato foi iniciado com sucesso.",
+      });
+    } catch (err) {
+      console.error("Erro ao iniciar campeonato:", err);
+      toast({
+        title: "Erro",
+        description: "Não foi possível iniciar o campeonato.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCancelTournament = async () => {
     if (!id) return;
 
@@ -264,6 +308,9 @@ const TournamentDetails = () => {
    * CORREÇÃO APLICADA AQUI:
    * Verifica se o status existe no objeto `variants` antes de tentar acessar `className` e `label`.
    */
+  const getPaymentStatusBadge = (status: Participant["status"] | string | undefined) => {
+// ... (continua na próxima parte)
+// ... (continuação da Parte 2)
   const getPaymentStatusBadge = (status: Participant["status"] | string | undefined) => {
     const variants = {
       paid: { label: "Pago", className: "bg-success/10 text-success border-success/20" },
@@ -305,6 +352,13 @@ const TournamentDetails = () => {
             </div>
             {!loading && !error && tournament && isHost && (
               <div className="flex gap-2">
+                {/* Botão INICIAR (Somente Host) */}
+                {tournament.status === "pending" && (
+                  <Button size="sm" onClick={handleStartTournament}>
+                    <Play className="w-4 h-4 mr-2" />
+                    Iniciar Campeonato
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
                   Editar
                 </Button>
@@ -386,6 +440,15 @@ const TournamentDetails = () => {
 
           {/* Financial Card */}
           <Card className="glass-card">
+            {/* Botão PAGAMENTO (Somente Participante não pago) */}
+            {!isHost && isParticipant && !isPaid && (
+              <div className="p-4 border-b">
+                <Button className="w-full" onClick={() => toast({ title: "Pagamento", description: "Lógica de pagamento a ser implementada." })}>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Efetuar Pagamento
+                </Button>
+              </div>
+            )}
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-success" />
@@ -469,7 +532,7 @@ const TournamentDetails = () => {
                           <div className="text-right hidden md:block">
                             <p className="text-sm text-muted-foreground">Inscrito em</p>
                             <p className="text-sm font-medium">
-                              {new Date(participant.joined_at).toLocaleDateString()}
+                              {new Date(participant.joined_at ).toLocaleDateString()}
                             </p>
                           </div>
                           {participant.user_id === currentUserId && !isHost && (
@@ -585,6 +648,7 @@ const TournamentDetails = () => {
     </div>
   );
 };
-
+}
 
 export default TournamentDetails;
+
