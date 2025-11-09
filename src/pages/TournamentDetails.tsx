@@ -34,6 +34,7 @@ import { SendInvitesDialog } from "@/components/SendInvitesDialog";
 import { ParticipantStatsTab } from "@/components/ParticipantStatsTab";
 import { useToast } from "@/hooks/use-toast";
 import { getTournamentDetails, updateTournament, removeParticipantFromTournament, deleteTournament, leaveTournament, startTournament } from "@/services/tournamentService";
+import paymentService from "@/services/paymentService";
 import { logAuditEvent } from "@/services/auditService";
 
 interface Participant {
@@ -440,7 +441,38 @@ const TournamentDetails = () => {
             {/* Botão PAGAMENTO (Somente Participante não pago) */}
             {!isHost && isParticipant && !isPaid && (
               <div className="p-4 border-b">
-                <Button className="w-full" onClick={() => toast({ title: "Pagamento", description: "Lógica de pagamento a ser implementada." })}>
+                <Button
+                  className="w-full"
+                  onClick={async () => {
+                    try {
+                      if (!tournament) return;
+
+                      // Encontrar o participante atual para referência externa (se houver)
+                      const currentParticipant = participants.find(p => p.user_id === currentUserId);
+
+                      const amount = Number(tournament.entry_fee || 0);
+                      const title = `Entrada - ${tournament.title}`;
+
+                      const resp = await paymentService.createPreference({
+                        amount,
+                        title,
+                        external_reference: currentParticipant?.id,
+                        payer: { email: currentParticipant?.profiles?.email },
+                      });
+
+                      // Preferir sandbox_init_point se disponível em ambiente de teste
+                      const checkoutUrl = resp.sandbox_init_point || resp.init_point;
+                      if (checkoutUrl) {
+                        window.location.href = checkoutUrl;
+                      } else {
+                        toast({ title: "Erro", description: "Não foi possível gerar o link de pagamento.", variant: "destructive" });
+                      }
+                    } catch (err) {
+                      console.error("Erro ao iniciar pagamento:", err);
+                      toast({ title: "Erro", description: "Falha ao iniciar pagamento.", variant: "destructive" });
+                    }
+                  }}
+                >
                   <CreditCard className="w-4 h-4 mr-2" />
                   Efetuar Pagamento
                 </Button>

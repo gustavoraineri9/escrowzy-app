@@ -56,7 +56,82 @@ Nossa lógica customizada (pagamentos, validação de regras, etc.) será constr
 * **Banco de Dados:** A definir (Ex: PostgreSQL)
 * **Gateway de Pagamento:** A definir (Ex: Stripe Connect, Pagar.me).
 
+### Integração Mercado Pago (local)
+
+Para usar a integração do Mercado Pago localmente, defina a variável de ambiente no backend:
+
+
+O backend expõe o endpoint POST `/api/payments/create_preference` que recebe um payload:
+
+```json
+{
+    "amount": 20.0,
+    "title": "Entrada - Meu Torneio",
+    "external_reference": "participant-id-opcional",
+    "payer": { "email": "usuario@exemplo.com" }
+}
+```
+
+O endpoint retorna `init_point` / `sandbox_init_point` que o frontend usa para redirecionar o usuário ao checkout.
+
+
+## Testando webhooks localmente com ngrok
+
+Para testar notificações do Mercado Pago no seu ambiente local, você pode expor o backend com o ngrok. Fiz um script simples no backend em `backend/scripts/start-ngrok.js`.
+
+Passos rápidos:
+
+1. Na pasta `backend`, instale dependências:
+
+```bash
+cd backend
+npm install
+```
+
+2. Inicie o backend (em outra aba/terminal):
+
+```bash
+npm run dev
+```
+
+3. Em um terminal separado, rode o helper do ngrok:
+
+```bash
+npm run ngrok
+```
+
+4. O script imprimirá a URL pública (ex: `https://abcd-1234.ngrok.io`). Copie e configure o webhook no painel do Mercado Pago para apontar para:
+
+```
+https://<seu-ngrok-subdomain>.ngrok.io/api/payments/webhook
+```
+
+5. Faça um pagamento no sandbox; as notificações serão enviadas para o seu backend local.
+
+Observação: mantenha o processo ngrok rodando enquanto testa webhooks.
+
 ---
+
+## Configurar Mercado Pago e Supabase (Backend)
+
+Se você for rodar o backend localmente e usar a integração com o Mercado Pago e Supabase, defina as seguintes variáveis de ambiente no arquivo `.env` na pasta `backend/` ou no ambiente do servidor:
+
+```
+MERCADO_PAGO_ACCESS_TOKEN=seu_access_token_de_sandbox_ou_producao
+MP_SUCCESS_URL=http://localhost:8080/payment/success
+MP_FAILURE_URL=http://localhost:8080/payment/failure
+MP_PENDING_URL=http://localhost:8080/payment/pending
+
+# Supabase (usado pelo backend para validações/atualizações)
+SUPABASE_URL=https://<seu-project-ref>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<sua_service_role_key>
+```
+
+- O `MERCADO_PAGO_ACCESS_TOKEN` é obrigatório para criar preferências e consultar pagamentos.
+- O `SUPABASE_SERVICE_ROLE_KEY` permite ao backend ler/atualizar tabelas (use somente no servidor).
+- Configure o webhook do Mercado Pago para apontar para `https://<seu-backend>/api/payments/webhook` (ou `http://localhost:5000/api/payments/webhook` em dev). O endpoint aceita notificações e tentará marcar o participante como `paid`.
+
+
 
 ### 🖼️ Telas do Front-End
 
