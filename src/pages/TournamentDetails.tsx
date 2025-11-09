@@ -22,8 +22,7 @@ import {
   ArrowLeft,
   Mail,
   MoreVertical,
-  UserMinus,
-  LogOut
+  UserMinus
 } from "lucide-react";
 import { TournamentBracket } from "@/components/TournamentBracket";
 import { TournamentTable } from "@/components/TournamentTable";
@@ -32,7 +31,7 @@ import { CancelTournamentDialog } from "@/components/CancelTournamentDialog";
 import { SendInvitesDialog } from "@/components/SendInvitesDialog";
 import { ParticipantStatsTab } from "@/components/ParticipantStatsTab";
 import { useToast } from "@/hooks/use-toast";
-import { getTournamentDetails, updateTournament, removeParticipantFromTournament, deleteTournament, leaveTournament } from "@/services/tournamentService";
+import { getTournamentDetails, updateTournament, removeParticipantFromTournament, deleteTournament } from "@/services/tournamentService";
 import { logAuditEvent } from "@/services/auditService";
 
 interface Participant {
@@ -154,44 +153,6 @@ const TournamentDetails = () => {
       toast({
         title: "Erro",
         description: "Não foi possível remover o participante.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleLeaveSelf = async (participantId: string) => {
-    if (!id || !currentUserId || !tournament) return;
-
-    // Host não pode usar essa ação
-    if (currentUserId === tournament.owner_id) {
-      toast({
-        title: "Ação inválida",
-        description: "O host não pode sair do torneio. Use cancelar campeonato se desejar encerrar.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await leaveTournament(id, currentUserId, tournament.owner_id);
-
-      await logAuditEvent(
-        "leave_tournament",
-        "tournament",
-        id,
-        { participant_id: participantId, user_id: currentUserId }
-      );
-
-      setParticipants(prev => prev.filter(p => p.id !== participantId));
-      toast({
-        title: "Saída confirmada",
-        description: "Você saiu do torneio com sucesso.",
-      });
-    } catch (err) {
-      console.error("Erro ao sair do torneio:", err);
-      toast({
-        title: "Erro",
-        description: "Não foi possível sair do torneio. Tente novamente.",
         variant: "destructive",
       });
     }
@@ -476,24 +437,15 @@ const TournamentDetails = () => {
                             </p>
                           </div>
                           {getPaymentStatusBadge(participant.status)}
-                          {/* Menu para o próprio participante (Sair) quando não for host */}
+                          {/* Botão 'Sair' visível para o próprio participante quando não for host */}
                           {participant.user_id === currentUserId && !isHost && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button size="sm" variant="ghost">
-                                  <MoreVertical className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  className="text-destructive focus:text-destructive"
-                                  onClick={() => handleLeaveSelf(participant.id)}
-                                >
-                                  <LogOut className="w-4 h-4 mr-2" />
-                                  Sair
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleLeaveTournament(participant.id)}
+                            >
+                              Sair
+                            </Button>
                           )}
                           {isHost && (
                             <DropdownMenu>
