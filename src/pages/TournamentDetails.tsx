@@ -34,6 +34,7 @@ import { SendInvitesDialog } from "@/components/SendInvitesDialog";
 import { ParticipantStatsTab } from "@/components/ParticipantStatsTab";
 import { useToast } from "@/hooks/use-toast";
 import { getTournamentDetails, updateTournament, removeParticipantFromTournament, deleteTournament, leaveTournament, startTournament } from "@/services/tournamentService";
+import paymentService from "@/services/paymentService";
 import { logAuditEvent } from "@/services/auditService";
 
 interface Participant {
@@ -63,6 +64,7 @@ const TournamentDetails = () => {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [invitesDialogOpen, setInvitesDialogOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isPaying, setIsPaying] = useState(false);
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -440,9 +442,39 @@ const TournamentDetails = () => {
             {/* Botão PAGAMENTO (Somente Participante não pago) */}
             {!isHost && isParticipant && !isPaid && (
               <div className="p-4 border-b">
-                <Button className="w-full" onClick={() => toast({ title: "Pagamento", description: "Lógica de pagamento a ser implementada." })}>
+                <Button
+                  className="w-full"
+                  disabled={isPaying}
+                  onClick={async () => {
+                    if (isPaying) return;
+                    setIsPaying(true);
+                    try {
+                      if (!tournament) return;
+
+                      const currentParticipant = participants.find(p => p.user_id === currentUserId);
+                      const amount = Number(tournament.entry_fee || 0);
+                      const title = `Entrada - ${tournament.title}`;
+
+                      const resp = await paymentService.createPreference({
+                        amount,
+                        title,
+                        external_reference: currentParticipant?.id || null,
+                        payer: { email: currentParticipant?.profiles?.email },
+                      });
+
+                      const checkoutUrl = resp.sandbox_init_point || resp.init_point;
+                      if (checkoutUrl) window.location.href = checkoutUrl;
+                      else toast({ title: "Erro", description: "Não foi possível gerar o link de pagamento.", variant: "destructive" });
+                    } catch (err) {
+                      console.error("Erro ao iniciar pagamento:", err);
+                      toast({ title: "Erro", description: "Falha ao iniciar pagamento.", variant: "destructive" });
+                    } finally {
+                      setIsPaying(false);
+                    }
+                  }}
+                >
                   <CreditCard className="w-4 h-4 mr-2" />
-                  Efetuar Pagamento
+                  {isPaying ? "Redirecionando..." : "Efetuar Pagamento"}
                 </Button>
               </div>
             )}
