@@ -65,7 +65,7 @@ const TournamentParticipantView = () => {
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
             setCurrentUser(user);
-            const participantEntry = data.participants.find((p: Participant) => p.user_id === user.id);
+            const participantEntry = data.participants.find((p: Participant) => p.user_id === user.id || p.profiles?.id === user.id);
             setIsUserParticipant(!!participantEntry);
           }
         } else {
@@ -81,7 +81,7 @@ const TournamentParticipantView = () => {
     fetchTournament();
   }, [id]);
 
-  const isUserPaid = isUserParticipant && participants.find(p => p.user_id === currentUser?.id)?.status === "paid";
+  const isUserPaid = isUserParticipant && participants.find(p => p.user_id === currentUser?.id || p.profiles?.id === currentUser?.id)?.status === "paid";
 
   const handleJoinTournament = async () => {
     if (!id || !currentUser || !tournament) return;
@@ -287,7 +287,7 @@ const TournamentParticipantView = () => {
                   <div 
                     key={participant.id}
                     className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
-                      participant.user_id === currentUser?.id 
+                      (participant.user_id === currentUser?.id || participant.profiles?.id === currentUser?.id) 
                         ? 'bg-primary/10 border-primary/20' 
                         : 'bg-card'
                     }`}
@@ -301,7 +301,7 @@ const TournamentParticipantView = () => {
                       <div>
                         <p className="font-semibold">
                           {participant.profiles?.full_name || participant.profiles?.display_name || "Nome Indisponível"}
-                          {participant.user_id === currentUser?.id && (
+                          {(participant.user_id === currentUser?.id || participant.profiles?.id === currentUser?.id) && (
                             <span className="ml-2 text-sm text-primary">(Você)</span>
                           )}
                         </p>
