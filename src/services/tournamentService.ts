@@ -262,3 +262,21 @@ export const leaveTournament = async (tournamentId: string, userId: string, owne
   
   return true;
 };
+export const startTournament = async (tournamentId: string) => {
+  // Simulação de chamada de serviço para iniciar o torneio
+  // Na vida real, isso faria uma chamada para o backend (ex: Supabase Function ou API)
+  // para mudar o status do torneio para 'in_progress' e talvez iniciar a geração da chave.
+  console.log(`Simulando o início do torneio com ID: ${tournamentId}`);
+
+  const { error } = await supabase
+    .from("tournaments" as any)
+    .update({ status: "in_progress" })
+    .eq("id", tournamentId);
+
+  if (error) {
+    console.error("Erro ao iniciar torneio:", error);
+    throw error;
+  }
+
+  return true;
+};
