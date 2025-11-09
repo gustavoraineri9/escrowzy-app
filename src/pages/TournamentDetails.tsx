@@ -121,7 +121,7 @@ const TournamentDetails = () => {
 
   const removeParticipant = async (participantId: string, participantName: string) => {
     if (!id) return;
-    
+
     // Verificar se o usuário é o host
     if (!isHost) {
       toast({
@@ -131,10 +131,10 @@ const TournamentDetails = () => {
       });
       return;
     }
-    
+
     try {
       await removeParticipantFromTournament(participantId);
-      
+
       // Registrar evento de auditoria
       await logAuditEvent(
         "remove_participant",
@@ -142,7 +142,7 @@ const TournamentDetails = () => {
         id,
         { participant_id: participantId, participant_name: participantName }
       );
-      
+
       setParticipants(participants.filter(p => p.id !== participantId));
       toast({
         title: "Participante removido",
@@ -199,7 +199,7 @@ const TournamentDetails = () => {
 
   const handleEditSave = async (data: { name: string; visibility: string }) => {
     if (!id) return;
-    
+
     // Verificar se o usuário é o host
     if (!isHost) {
       toast({
@@ -209,7 +209,7 @@ const TournamentDetails = () => {
       });
       return;
     }
-    
+
     try {
       const updatedTournament = await updateTournament(id, { title: data.name, public: data.visibility === "public" });
       if (updatedTournament) {
@@ -231,7 +231,7 @@ const TournamentDetails = () => {
 
   const handleCancelTournament = async () => {
     if (!id) return;
-    
+
     // Verificar se o usuário é o host
     if (!isHost) {
       toast({
@@ -241,7 +241,7 @@ const TournamentDetails = () => {
       });
       return;
     }
-    
+
     try {
       await deleteTournament(id);
       toast({
@@ -270,14 +270,14 @@ const TournamentDetails = () => {
       pending: { label: "Pendente", className: "bg-warning/10 text-warning border-warning/20" },
       forfeit: { label: "Desistiu", className: "bg-destructive/10 text-destructive border-destructive/20" },
     };
-    
+
     const variant = variants[status as keyof typeof variants];
 
     // Se 'variant' for undefined (status desconhecido/inválido), retorna um badge padrão.
     if (!variant) {
       return <Badge variant="secondary">Status Desconhecido</Badge>;
     }
-    
+
     // Se o status for válido, retorna o badge correto.
     return <Badge className={variant.className}>{variant.label}</Badge>;
   };
@@ -285,7 +285,7 @@ const TournamentDetails = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <main className="container mx-auto px-4 pt-24 pb-12">
         {/* Header */}
         <div className="mb-8 animate-slide-up">
@@ -295,7 +295,7 @@ const TournamentDetails = () => {
               Voltar
             </Link>
           </Button>
-          
+
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h1 className="text-4xl font-bold mb-2">{tournament?.title}</h1>
@@ -308,9 +308,9 @@ const TournamentDetails = () => {
                 <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
                   Editar
                 </Button>
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
+                <Button
+                  variant="destructive"
+                  size="sm"
                   onClick={() => setCancelDialogOpen(true)}
                 >
                   Cancelar
@@ -410,7 +410,7 @@ const TournamentDetails = () => {
               <div className="pt-2 border-t">
                 <p className="text-xs text-muted-foreground mb-1">Pagamentos confirmados</p>
                 <div className="w-full bg-muted rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-success h-2 rounded-full transition-all"
                     style={{ width: `${(paidCount / (tournament?.max_participants || 1)) * 100}%` }}
                   />
@@ -450,12 +450,12 @@ const TournamentDetails = () => {
                 <TabsContent value="participants" className="space-y-3 mt-0">
                   {participants.length > 0 ? (
                     participants.map((participant) => (
-                      <div 
+                      <div
                         key={participant.id}
                         className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                       >
                         <div className="flex items-center gap-4">
-                          <img 
+                          <img
                             src={participant.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant.profiles?.display_name || participant.user_id}`}
                             alt={participant.profiles?.full_name || participant.profiles?.display_name || "Participante"}
                             className="w-12 h-12 rounded-full"
@@ -472,16 +472,23 @@ const TournamentDetails = () => {
                               {new Date(participant.joined_at).toLocaleDateString()}
                             </p>
                           </div>
-                          {getPaymentStatusBadge(participant.status)}
-                          {/* Botão 'Sair' visível para o próprio participante quando não for host */}
                           {participant.user_id === currentUserId && !isHost && (
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleLeaveTournament(participant.id)}
-                            >
-                              Sair
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="ghost">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => handleLeaveTournament(participant.id)}
+                                >
+                                  <UserMinus className="w-4 h-4 mr-2" />
+                                  Sair
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           )}
                           {isHost && (
                             <DropdownMenu>
@@ -507,10 +514,10 @@ const TournamentDetails = () => {
                   ) : (
                     <p className="text-muted-foreground">Nenhum participante inscrito ainda.</p>
                   )}
-                  
+
                   {/* Empty slots */}
                   {Array.from({ length: availableSlots }).map((_, index) => (
-                    <div 
+                    <div
                       key={`empty-${index}`}
                       className="flex items-center gap-4 p-4 rounded-lg border border-dashed bg-muted/30"
                     >
@@ -535,8 +542,8 @@ const TournamentDetails = () => {
             <CardHeader>
               <CardTitle>Visualização do Campeonato</CardTitle>
               <CardDescription>
-                {tournament.game_mode === "Mata-mata" 
-                  ? "Chaveamento e grupos do torneio" 
+                {tournament.game_mode === "Mata-mata"
+                  ? "Chaveamento e grupos do torneio"
                   : "Tabela de classificação e pontuação"}
               </CardDescription>
             </CardHeader>
@@ -577,7 +584,7 @@ const TournamentDetails = () => {
       )}
     </div>
   );
-}; 
+};
 
 
 export default TournamentDetails;
