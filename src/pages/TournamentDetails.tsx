@@ -31,7 +31,7 @@ import { CancelTournamentDialog } from "@/components/CancelTournamentDialog";
 import { SendInvitesDialog } from "@/components/SendInvitesDialog";
 import { ParticipantStatsTab } from "@/components/ParticipantStatsTab";
 import { useToast } from "@/hooks/use-toast";
-import { getTournamentDetails, updateTournament, removeParticipantFromTournament, deleteTournament } from "@/services/tournamentService";
+import { getTournamentDetails, updateTournament, removeParticipantFromTournament, deleteTournament, leaveTournament } from "@/services/tournamentService";
 import { logAuditEvent } from "@/services/auditService";
 
 interface Participant {
@@ -158,7 +158,44 @@ const TournamentDetails = () => {
     }
   };
 
-  
+  const handleLeaveTournament = async (participantId: string) => {
+    if (!id || !currentUserId || !tournament) return;
+
+    // Usuário anfitrião não pode usar esta ação
+    if (currentUserId === tournament.owner_id) {
+      toast({
+        title: "Ação inválida",
+        description: "O host não pode sair do torneio. Use cancelar campeonato se desejar encerrar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await leaveTournament(id, currentUserId, tournament.owner_id);
+
+      // Registrar auditoria
+      await logAuditEvent(
+        "leave_tournament",
+        "tournament",
+        id,
+        { participant_id: participantId, user_id: currentUserId }
+      );
+
+      setParticipants(participants.filter(p => p.id !== participantId));
+      toast({
+        title: "Saída confirmada",
+        description: "Você saiu do torneio com sucesso.",
+      });
+    } catch (err) {
+      console.error("Erro ao sair do torneio:", err);
+      toast({
+        title: "Erro",
+        description: "Não foi possível sair do torneio. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleEditSave = async (data: { name: string; visibility: string }) => {
     if (!id) return;
@@ -410,7 +447,6 @@ const TournamentDetails = () => {
             )}
             {!loading && !error && tournament && (
               <CardContent>
-                
                 <TabsContent value="participants" className="space-y-3 mt-0">
                   {participants.length > 0 ? (
                     participants.map((participant) => (
